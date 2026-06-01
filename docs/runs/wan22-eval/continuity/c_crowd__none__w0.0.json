@@ -1,0 +1,20 @@
+{
+  "tag": "c_crowd__none__w0.0",
+  "scene_id": "c_crowd",
+  "prompt": "A massive crowd of people chanting in unison at an outdoor rally, raised fists, banners and flags waving above heads, evening light, energetic atmosphere, wide shot, faces visible in the foreground, cinematic",
+  "lora_id": "none",
+  "lora_weight": 0.0,
+  "seed": 1234,
+  "frames_per_clip": 121,
+  "fps": 24,
+  "h": 480,
+  "w": 832,
+  "steps": 40,
+  "guidance": 5.0,
+  "final": "/home/akash/PycharmProjects/video-app/docs/runs/wan22-eval/continuity/c_crowd__none__w0.0.mp4",
+  "clip1_lora_ok": true,
+  "clip1_wall_s": 223.8,
+  "clip2_lora_ok": true,
+  "clip2_wall_s": 223.8,
+  "ok": true
+}

@@ -1,0 +1,110 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL ──
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: storyvideouser
+      POSTGRES_PASSWORD: storyvideopass
+      POSTGRES_DB: storyvideo
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U storyvideouser -d storyvideo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ──
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Backend API ──
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://storyvideouser:storyvideopass@db:5432/storyvideo
+      DATABASE_URL_SYNC: postgresql://storyvideouser:storyvideopass@db:5432/storyvideo
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      STORAGE_ROOT: /app/storage
+      LLM_PROVIDER: openai
+      LLM_MODEL: gpt-4o-mini
+      SECRETS_MANAGER_URL: http://host.docker.internal:8010
+      SECRETS_MANAGER_TOKEN: ${SECRETS_MANAGER_TOKEN}
+      VIDEO_PROVIDER: ltx
+      AUDIO_PROVIDER: chatterbox
+      CHATTERBOX_REFERENCE_AUDIO: /app/storage/audio/narrator_reference.wav
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000"]'
+    volumes:
+      - ./backend:/app
+      - ./storage:/app/storage
+      - ./ltx_generate.py:/app/ltx_generate.py:ro
+      - ./chatterbox_generate.py:/app/chatterbox_generate.py:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── Celery Worker ──
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    command: celery -A app.orchestration.tasks:celery_app worker --loglevel=info --concurrency=2
+    environment:
+      DATABASE_URL: postgresql+asyncpg://storyvideouser:storyvideopass@db:5432/storyvideo
+      DATABASE_URL_SYNC: postgresql://storyvideouser:storyvideopass@db:5432/storyvideo
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      STORAGE_ROOT: /app/storage
+      LLM_PROVIDER: openai
+      LLM_MODEL: gpt-4o-mini
+      SECRETS_MANAGER_URL: http://host.docker.internal:8010
+      SECRETS_MANAGER_TOKEN: ${SECRETS_MANAGER_TOKEN}
+      VIDEO_PROVIDER: ltx
+      AUDIO_PROVIDER: chatterbox
+      CHATTERBOX_REFERENCE_AUDIO: /app/storage/audio/narrator_reference.wav
+    volumes:
+      - ./backend:/app
+      - ./storage:/app/storage
+      - ./ltx_generate.py:/app/ltx_generate.py:ro
+      - ./chatterbox_generate.py:/app/chatterbox_generate.py:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── Frontend ──
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

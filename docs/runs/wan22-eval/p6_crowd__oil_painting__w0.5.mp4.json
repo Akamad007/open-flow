@@ -1,0 +1,18 @@
+{
+  "prompt_id": "p6_crowd",
+  "prompt": "A massive crowd of people chanting in unison at an outdoor rally, raised fists, banners and flags waving above heads, evening light, energetic atmosphere, wide shot, faces visible in the foreground, cinematic",
+  "lora_id": "oil_painting",
+  "lora_weight": 0.5,
+  "seed": 1234,
+  "frames": 121,
+  "fps": 24,
+  "h": 480,
+  "w": 832,
+  "steps": 40,
+  "guidance": 5.0,
+  "out": "/home/akash/PycharmProjects/video-app/docs/runs/wan22-eval/p6_crowd__oil_painting__w0.5.mp4",
+  "load_ok": true,
+  "error": null,
+  "wall_clock_s": 241.6,
+  "gen_ok": true
+}

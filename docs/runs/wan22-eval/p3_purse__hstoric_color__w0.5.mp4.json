@@ -1,0 +1,19 @@
+{
+  "prompt_id": "p3_purse",
+  "prompt": "A young fashion model in a beige trench coat walking down a city sidewalk holding a brown leather purse over her shoulder, side view, full body, golden hour light, elegant pace",
+  "lora_id": "hstoric_color",
+  "lora_weight": 0.5,
+  "seed": 1234,
+  "frames": 121,
+  "fps": 24,
+  "h": 480,
+  "w": 832,
+  "steps": 40,
+  "guidance": 5.0,
+  "out": "/home/akash/PycharmProjects/video-app/docs/runs/wan22-eval/p3_purse__hstoric_color__w0.5.mp4",
+  "load_ok": true,
+  "error": null,
+  "adapter_name": "hstoric_color",
+  "wall_clock_s": 242.7,
+  "gen_ok": true
+}

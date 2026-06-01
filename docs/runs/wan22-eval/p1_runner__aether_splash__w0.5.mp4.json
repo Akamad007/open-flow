@@ -1,0 +1,18 @@
+{
+  "prompt_id": "p1_runner",
+  "prompt": "A man in athletic gear running through a tree-lined park at golden hour, side view, full body visible, dynamic stride, autumn leaves on the ground, shallow depth of field, cinematic",
+  "lora_id": "aether_splash",
+  "lora_weight": 0.5,
+  "seed": 1234,
+  "frames": 121,
+  "fps": 24,
+  "h": 480,
+  "w": 832,
+  "steps": 40,
+  "guidance": 5.0,
+  "out": "/home/akash/PycharmProjects/video-app/docs/runs/wan22-eval/p1_runner__aether_splash__w0.5.mp4",
+  "load_ok": true,
+  "error": null,
+  "wall_clock_s": 241.5,
+  "gen_ok": true
+}

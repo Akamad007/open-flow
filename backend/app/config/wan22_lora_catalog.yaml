@@ -1,0 +1,314 @@
+# Wan 2.2 TI2V-5B LoRA catalog — derived from the empirical eval in SUMMARY.md.
+#
+# Format:
+#   loras:        all viable LoRAs with their files, sweet-spot weights, and tags
+#   scene_map:    scene_type → recommended (lora_id, weight, runner_up?)
+#   tag_index:    keyword → scene_type   (for the LLM classifier)
+#   defaults:     fallback when no scene type matches
+#
+# This file is the source of truth for the backend LoRA selector. Load with PyYAML,
+# parse into the dictionary shown at the bottom of SUMMARY.md §13.
+
+loras:
+  none:
+    file: null
+    tier: 0
+    description: No LoRA. Clean baseline; best when motion clarity matters more than mood.
+    weights: [0.0]
+    tags: [baseline, walking, dancing, motion, clean]
+
+  crush_it:
+    file: crush_it_5b.safetensors
+    tier: 1
+    description: Cinematic color grade — saturated reds, deep shadows, punchy ad polish. Most reliable across scene types.
+    weights: [0.5, 1.0]
+    sweet_spot: 0.5
+    tags: [cinematic, ad, polish, saturated, default]
+
+  hstoric_color:
+    file: hstoric_color_5b.safetensors
+    tier: 1
+    description: Warm golden / sepia film grade. Sunset palette. Best for period and fire-lit scenes.
+    weights: [0.5, 1.0]
+    sweet_spot: 0.5
+    weight_caveats:
+      "1.0": Caused prompt drift on closeup (man-with-phone instead of coffee). Use 1.0 only on fire/period.
+    tags: [warm, sunset, golden, period, historical, fire]
+
+  zackdfilms:
+    file: zackdfilms_5b_fixed.safetensors
+    tier: 1
+    description: Cinematic film LUT — heavy contrast, dramatic lighting, dust + light beams. Most cinematic LoRA in the set.
+    weights: [0.5, 1.0]
+    sweet_spot: 0.5
+    notes: Required key-format remap to load — see scripts/wan22_fix_zackdfilms.py.
+    tags: [epic, dramatic, cinematic, war, action, hero, fire]
+
+  oil_painting:
+    file: oil_painting_5b.safetensors
+    tier: 2
+    description: Painterly brushwork texture across the frame. Editorial fashion specialist.
+    weights: [0.5, 1.0]
+    sweet_spot: 0.5
+    weight_caveats:
+      "1.0": Introduces artifacts on realistic action (floating painted leaves on runner).
+    tags: [painterly, editorial, fashion, artistic, brushwork]
+
+  aether_splash:
+    file: aether_splash_5b.safetensors
+    tier: 3
+    description: Wet / glossy / water-spray overlay. Niche — only when prompt explicitly involves water.
+    weights: [1.0]
+    sweet_spot: 1.0
+    weight_caveats:
+      "0.5": Subtle; adds out-of-prompt wet artifacts (wet leaves on dry park).
+    tags: [water, splash, wet, drink, glossy, rain]
+
+  # ── NEW (added 2026-05-27, downloaded from CivitAI) ──
+  # NOTE: `ghibli_style` was removed 2026-05-27 — the downloaded file was a
+  # kohya-format SD/SDXL text-encoder LoRA (key prefix `lora_te_text_model_*`),
+  # not a Wan22 transformer LoRA. Tensor dim 3072 matched coincidentally but
+  # diffusers' loader failed at musubi-convert. No real 5B Ghibli LoRA exists
+  # on CivitAI/HuggingFace as of this date. Use `flat_color` for anime style.
+
+  flat_color:
+    file: wan_flat_color_2.2.5b_v2.safetensors
+    tier: 1
+    description: Flat-color anime/cartoon style — no lineart, blended flat colors, strong negative space. Perfect for anime/cartoon/Ghibli defaults and any non-photoreal output.
+    weights: [0.5, 1.0]
+    sweet_spot: 0.5
+    tags: [anime, cartoon, flat, ghibli, animated, hand-drawn, painterly, illustration, shounen, cel-shaded]
+
+  realistic_fire:
+    file: Wan_2.2_5B_Realistic_Fire.safetensors
+    tier: 2
+    description: Realistic fire / flame rendering — convincing combustion on subjects or in environments. Use for any fire-driven beat.
+    weights: [0.5, 1.0]
+    sweet_spot: 1.0
+    tags: [fire, flame, blaze, ember, spark, candle, torch, burning, combustion, pyre]
+
+  aether_blast:
+    file: Aether_Blast-LoRA-Wan22_5b-v1.safetensors
+    tier: 3
+    description: Outward shockwave / explosion FX — tears through buildings, cityscapes, wide environments. Niche action.
+    weights: [1.0]
+    sweet_spot: 1.0
+    tags: [explosion, shockwave, blast, destruction, demolition, impact, war, battle]
+
+  zoom_art:
+    file: Wan22_5B_Zoom_Art.safetensors
+    tier: 3
+    description: Surreal endless zoom-in — dreamscape infinite-zoom artistic motion. Use only when the prompt asks for surreal/abstract/dreamy zoom.
+    weights: [0.5, 1.0]
+    sweet_spot: 1.0
+    tags: [zoom, surreal, dreamscape, abstract, kaleidoscope, infinite, fractal, hallucinatory]
+
+  # ── Environment / atmosphere group — useful for wide shots ──
+
+  golden_boy_anime:
+    file: goldenboylora-22-5B-e145.safetensors
+    tier: 2
+    description: Retro 90's anime aesthetic — Golden Boy / classic hand-drawn cel style with strong environmental detail. Good companion for wide anime shots where the environment matters as much as the subject.
+    weights: [0.5, 1.0]
+    sweet_spot: 1.0
+    tags: [anime, retro, ninetiees, "90s", golden_boy, cel, hand-drawn, environment, scenery, landscape, exterior, wide, establishing]
+
+  beauty_of_rain:
+    file: beauty_of_rain_wan2_2_ti2v_5B.safetensors
+    tier: 2
+    description: Atmospheric rain — gentle falling rain, wet surfaces, soft moody lighting. Best for outdoor and wide establishing shots needing a rainy mood. NOT for scenes that should be dry/sunny.
+    weights: [0.5, 1.0]
+    sweet_spot: 1.0
+    tags: [rain, weather, atmospheric, wet, moody, monsoon, drizzle, downpour, outdoor, exterior, landscape, melancholy]
+
+  shadow_smoke:
+    file: SHADOWV1_000001000.safetensors
+    tier: 3
+    description: Drifting smoke / haze / shadow with depth — wisps of smoke, atmospheric particulates, soft volumetric haze. Adds depth to wide environmental shots and battle/fire scenes.
+    weights: [0.5, 1.0]
+    sweet_spot: 1.0
+    tags: [smoke, haze, fog, mist, atmospheric, volumetric, depth, particulates, shadow, drift, dusk, night]
+
+  # ── NEW (added 2026-05-27, batch download) ──
+
+  glowing_eyes:
+    file: glowing_eyes_5b.safetensors
+    tier: 3
+    description: Makes character eyes glow with supernatural energy — great for divine, demonic, or powered-up characters. Use for Krishna, gods, sorcerers, or any supernatural accent.
+    weights: [0.5, 1.0]
+    sweet_spot: 1.0
+    tags: [glow, eyes, supernatural, divine, demonic, power, energy, god, deity, mystic, aura, krishna, cosmic]
+
+  improved_dance:
+    file: improved_dance_v2_5b.safetensors
+    tier: 2
+    description: Better full-body dance and gesture motion — smoother limb articulation, more natural weight transfer. Use for dance sequences, expressive gestures, or any scene needing fluid body motion. Works best on full/medium shots, not closeups or group scenes.
+    weights: [0.5, 1.0]
+    sweet_spot: 1.0
+    # Correct file = CivitAI 1980389 V2 "soft" (ver 2412492), 153.82 MB, Wan 2.2
+    # TI2V-5B, sha256 35fd028f…d6a3106d. (A prior 217 MB SDXL mis-download had to
+    # be replaced — verify keys are diffusion_model.blocks.* / hidden 3072.)
+    tags: [dance, dancing, gesture, motion, movement, body, expressive, fluid, choreography, performance, sway]
+
+  aether_punch:
+    file: aether_punch_5b.safetensors
+    tier: 3
+    description: Boxing glove or fist punches subject from off-screen — comedic or dramatic impact effect. Niche action beat.
+    weights: [1.0]
+    sweet_spot: 1.0
+    tags: [punch, hit, impact, boxing, fist, strike, comedy, slapstick]
+
+# Excluded from catalog (kept here for documentation):
+excluded:
+  aether_punch:
+    reason: Invisible at both weights in T2V mode. May behave differently in I2V (untested).
+  woven_fabric:
+    reason: Textile overlay artifact on 95% of scenes. Only fits historical battle tapestry — niche enough to skip.
+  lightning_a14b:
+    reason: Architectural incompatibility (A14B hidden=5120 vs 5B hidden=3072). Will never load on TI2V-5B.
+  gurren_lagann:
+    reason: 14B LoRA only (CivitAI model 1897405). No 5B version exists.
+  ti2v_5b_turbo:
+    reason: Not a standard LoRA — Self-Forcing distilled checkpoint (model.pt). Needs custom pipeline, not diffusers load_lora_weights. Future integration as separate inference backend.
+
+# Scene type → LoRA mapping. The LLM matches the prompt against tags, picks scene_type, then looks up here.
+scene_map:
+  action_running:
+    primary: { lora: crush_it, weight: 0.5 }
+    runner_up: { lora: hstoric_color, weight: 0.5 }
+    avoid: [oil_painting@1.0, aether_splash, woven_fabric]
+    default_shot: wide
+    description: Full-body action, subject often small, motion-led.
+
+  closeup_portrait:
+    primary: { lora: crush_it, weight: 0.5 }
+    runner_up: { lora: none, weight: 0.0 }
+    avoid: [hstoric_color@1.0, woven_fabric]
+    default_shot: closeup
+    description: Face-led closeup. Avoid heavy LoRAs (drift + texture artifacts on face).
+
+  closeup_with_fx:
+    primary: { lora: hstoric_color, weight: 1.0 }
+    runner_up: { lora: zackdfilms, weight: 1.0 }
+    default_shot: closeup
+    description: Closeup that includes fire, splash, or strong FX — heavier LoRA fits.
+
+  walking_locomotion:
+    primary: { lora: none, weight: 0.0 }
+    runner_up: { lora: crush_it, weight: 0.5 }
+    default_shot: medium
+    description: Plain walking shots. Baseline often best; light polish optional.
+
+  editorial_fashion:
+    primary: { lora: oil_painting, weight: 0.5 }
+    runner_up: { lora: zackdfilms, weight: 0.5 }
+    default_shot: medium
+    description: Model + product, editorial mood. Painterly LoRA suits the brief.
+
+  dancing_high_motion:
+    primary: { lora: none, weight: 0.0 }
+    runner_up: { lora: crush_it, weight: 0.5 }
+    avoid: [oil_painting, woven_fabric]
+    default_shot: wide
+    description: Motion clarity dominates; heavy LoRAs blur motion.
+
+  dramatic_cinematic_war:
+    primary: { lora: zackdfilms, weight: 1.0 }
+    runner_up: { lora: hstoric_color, weight: 0.5 }
+    default_shot: wide
+    description: Epic dramatic scenes. Use 1.0 for cinema-style, 0.5 for ad-friendly drama.
+
+  crowd_mass_scene:
+    primary: { lora: crush_it, weight: 0.5 }
+    runner_up: { lora: zackdfilms, weight: 0.5 }
+    default_shot: wide
+    description: Rally, chanting, mass crowd. Cinematic LUT works on group energy.
+
+  historical_period:
+    primary: { lora: hstoric_color, weight: 1.0 }
+    runner_up: { lora: oil_painting, weight: 0.5 }
+    default_shot: medium
+    description: Period drama, sunset/golden hour, historical settings.
+
+  water_splash_fx:
+    primary: { lora: aether_splash, weight: 1.0 }
+    runner_up: { lora: crush_it, weight: 0.5 }
+    default_shot: closeup
+    description: Only when prompt explicitly involves water, rain, drinks, splashes.
+
+# Keyword → scene_type. Order matters: earlier scene_types have higher precedence (more specific).
+# Word-prefix match: 'flame' matches 'flames'/'flaming' but not 'inflame' (prefix-of-word).
+tag_index:
+  closeup_with_fx:    [flame, fire, spark, blaze, ember]
+  water_splash_fx:    [water, rain, drink, splash, wet, spray, droplet]
+  dramatic_cinematic_war: [war, battle, epic, hero, dramatic, soldier, sword, knight, armor, samurai]
+  historical_period:  [historical, period, ancient, medieval, victorian, mahabharata, byzantine, roman]
+  editorial_fashion:  [purse, handbag, runway, editorial, fashion, designer]
+  crowd_mass_scene:   [crowd, rally, chant, protest, throng]
+  dancing_high_motion: [dance, dancing, dancer, spin, twirl, ballet]
+  closeup_portrait:   [closeup, portrait, headshot]
+  walking_locomotion: [walk, walks, walking, stroll]
+  action_running:     [run, running, sprint, jog, athletic]
+
+# Shot-type classifier — independent of scene_type. Drives the post-process decision.
+# Match any tag in the prompt; default = scene_type's `default_shot` (see scene_map).
+shot_index:
+  closeup: [closeup, portrait, headshot, "head shot", face, talking, "looking into"]
+  wide:    [wide, panoramic, aerial, "wide shot", "long shot", "from afar", "in the distance"]
+  medium:  [medium, "waist up", "knees up", "torso"]
+
+defaults:
+  fallback: { lora: crush_it, weight: 0.5 }
+  reason: When no scene type matches, crush_it @ 0.5 is the safest cinematic enhancer (works across all 7 prompt types tested).
+
+# Settings recommended for all generations (separate from LoRA choice).
+generation_defaults:
+  height: 480
+  width: 832
+  num_frames: 121
+  fps: 24
+  steps: 40
+  guidance_scale: 5.0
+  negative_prompt: "blurry, low quality, distorted, oversaturated, watermark, text, logo, deformed hands, extra limbs"
+  notes: |
+    832x480 is the validated baseline on 16GB GPU with model CPU offload (~4 min/clip).
+    1024x576 fits (~6 min/clip, 1.58x pixels) but doesn't recover face-from-afar — the model recomposes.
+    1280x720 OOMs on 16GB GPU; needs ≥24GB or sequential offload.
+
+# I2V last-frame chaining limits — measured on c_runner baseline.
+continuity:
+  max_chain_clips: 2   # 10s total. Beyond this, composition drift becomes visible at seam.
+  notes: |
+    - 2-clip chain (10s): seam-1 is clean. Reliable default.
+    - 3-clip chain (15s): seam-2 shows slight composition reset; identity holds.
+    - Closeups/medium shots chain better than wide shots (perspective shift problem).
+    - Same seed + same LoRA across all clips in a chain is required for identity stability.
+
+# Post-process recommendation (separate from LoRA, applied after generation).
+# RULE: face restoration is ONLY for distant/wide shots where the face is small (<60 px crop).
+# Closeups already look good; restoration would over-process and add artifacts.
+post_process:
+  decision_rule: |
+    if scene_type in [closeup_portrait, closeup_with_fx, editorial_fashion]:
+        post_process = "none"   # face is already large enough; restoration over-processes
+    elif scene_type in [action_running, dramatic_cinematic_war, dancing_high_motion, crowd_mass_scene]:
+        post_process = "codeformer_esrgan"  # small/distant faces need help
+    else:
+        post_process = "none"   # default off
+
+  options:
+    none:
+      good_for: All closeups and editorial shots. Default.
+    codeformer_esrgan:
+      tool: CodeFormer fidelity=0.5 + Real-ESRGAN 2x
+      script: scripts/wan22_face_restore_codeformer.py
+      cost_per_frame_s: 0.40
+      output_scale: 2
+      good_for: Wide/distant shots with small face crops (action, war, crowd, dancing wide).
+      caveat: Do NOT apply to closeups — over-processes already-good faces.
+    gfpgan_only:
+      tool: GFPGAN v1.4
+      script: scripts/wan22_face_restore.py
+      cost_per_frame_s: 0.07
+      output_scale: 1
+      good_for: Deprecated for this catalog; codeformer_esrgan supersedes it.

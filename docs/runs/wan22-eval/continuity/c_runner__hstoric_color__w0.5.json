@@ -1,0 +1,20 @@
+{
+  "tag": "c_runner__hstoric_color__w0.5",
+  "scene_id": "c_runner",
+  "prompt": "A man in athletic gear running through a tree-lined park at golden hour, side view, full body visible, dynamic stride, autumn leaves on the ground, shallow depth of field, cinematic",
+  "lora_id": "hstoric_color",
+  "lora_weight": 0.5,
+  "seed": 1234,
+  "frames_per_clip": 121,
+  "fps": 24,
+  "h": 480,
+  "w": 832,
+  "steps": 40,
+  "guidance": 5.0,
+  "final": "/home/akash/PycharmProjects/video-app/docs/runs/wan22-eval/continuity/c_runner__hstoric_color__w0.5.mp4",
+  "clip1_lora_ok": true,
+  "clip1_wall_s": 244.5,
+  "clip2_lora_ok": true,
+  "clip2_wall_s": 244.0,
+  "ok": true
+}

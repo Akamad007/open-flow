@@ -1,0 +1,19 @@
+{
+  "prompt_id": "p4_chef",
+  "prompt": "A chef in a white apron tossing fresh vegetables in a black pan over a gas flame, kitchen with stainless steel surfaces, dramatic side light, sparks of fire, motion blur on the vegetables",
+  "lora_id": "hstoric_color",
+  "lora_weight": 1.0,
+  "seed": 1234,
+  "frames": 121,
+  "fps": 24,
+  "h": 480,
+  "w": 832,
+  "steps": 40,
+  "guidance": 5.0,
+  "out": "/home/akash/PycharmProjects/video-app/docs/runs/wan22-eval/p4_chef__hstoric_color__w1.0.mp4",
+  "load_ok": true,
+  "error": null,
+  "adapter_name": "hstoric_color",
+  "wall_clock_s": 243.5,
+  "gen_ok": true
+}

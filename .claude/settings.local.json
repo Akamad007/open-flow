@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/home/akash/PycharmProjects/video-app/backend/.venv/bin/python -c \"import pytest, pytest_asyncio; print\\(pytest.__version__, pytest_asyncio.__version__\\)\")",
+      "Bash(/home/akash/PycharmProjects/video-app/backend/.venv/bin/python -m pyflakes /home/akash/PycharmProjects/video-app/backend/app/)",
+      "Bash(curl -s -o /dev/null -w \"8002 = %{http_code}\\\\n\" http://localhost:8002/projects)",
+      "Bash(curl -s -o /dev/null -w \"5173 = %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s -o /dev/null -w \"API /api/projects = %{http_code}\\\\n\" http://localhost:8002/api/projects)",
+      "Bash(curl -s -o /dev/null -w \"FE = %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(/home/akash/.pyenv/versions/video-app/bin/python test_save_soil_e2e.py --api http://localhost:8002)",
+      "Bash(tee test_save_soil_e2e.out)",
+      "Bash(find /home/akash -maxdepth 4 -type d \\\\\\( -iname \"*secret*manager*\" -o -iname \"secrets-manager\" -o -iname \"secrets_manager\" \\\\\\) 2>/dev/null | head -10; echo \"---\"; find /home/akash -maxdepth 5 -name \"*.py\" \\\\\\( -path \"*secret*manager*\" -o -path \"*secrets_manager*\" \\\\\\) 2>/dev/null | head -10; echo \"---procs---\"; pgrep -af \"secret\\\\|8010\" | head -10)",
+      "Read(//home/akash/**)",
+      "Bash(ls /home/akash/PycharmProjects/secrets-manager/venv/bin/python 2>/dev/null; echo \"---\"; tail -25 /home/akash/PycharmProjects/secrets-manager/secrets.log 2>/dev/null; echo \"---compose---\"; cat /home/akash/PycharmProjects/secrets-manager/docker-compose.yml 2>/dev/null | head -40)",
+      "Read(//usr/bin/**)",
+      "Bash(nohup ./venv/bin/python manage.py runserver 127.0.0.1:8010)",
+      "Bash(echo \"secrets-manager PID=$!\")",
+      "Bash(/home/akash/.pyenv/versions/video-app/bin/python -c ' *)",
+      "Bash(/home/akash/.pyenv/versions/video-app/bin/alembic current *)",
+      "Bash(PYTHONPATH=. /home/akash/.pyenv/versions/video-app/bin/alembic current)",
+      "Bash(PYTHONPATH=. /home/akash/.pyenv/versions/video-app/bin/alembic upgrade head)",
+      "Bash(pkill -KILL -f \"celery -A celery_worker\")",
+      "Bash(pkill -KILL -f \"improvement_loop\")",
+      "Bash(pkill -KILL -f \"loop_watchdog\")",
+      "Bash(nohup /home/akash/.pyenv/versions/video-app/bin/python /home/akash/PycharmProjects/video-app/scripts/improvement_loop.py)",
+      "Bash(echo \"loop pid $!\")",
+      "Bash(sleep 5 && tail -10 /tmp/improvement_loop.log)",
+      "Read(//tmp/**)"
+    ]
+  }
+}
