@@ -1,0 +1,11 @@
+# Auto-grade log (F-NO-STILL-PINS batch)
+
+- `b6145208` **AD batch — airline_travel** auto=0.896 M5=0.27 M11=0.59 M7=1.00 (00:58)
+- `7aadb2eb` **AD batch — running_shoes** auto=0.875 M5=0.78 M11=0.29 M7=1.00 (00:58)
+- `06754724` **AD batch — instant_noodles** auto=0.877 M5=0.08 M11=0.53 M7=1.00 (00:59)
+- `1582f0f7` **AD batch — soft_drink_cola** auto=0.868 M5=0.17 M11=0.44 M7=1.00 (00:59)
+- `e223b091` **AD batch — denim_jacket** auto=0.887 M5=0.11 M11=0.59 M7=1.00 (01:08)
+- `23a52d64` **AD batch — coffee_morning** auto=0.909 M5=0.37 M11=0.64 M7=1.00 (01:39)
+- `d0024d82` **SMOKE3** auto=0.614 M5=0.00 M11=0.60 M7=1.00 (02:14)
+- `31a64e73` **LOOP — krishna_butter** auto=0.790 M5=0.00 M11=0.71 M7=1.00 (02:19)
+- `a1204a10` **LOOP — running_shoes** auto=0.793 M5=0.00 M11=0.69 M7=1.00 (02:24)

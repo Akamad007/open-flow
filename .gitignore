@@ -1,0 +1,38 @@
+# StoryVideo generated assets
+storage/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.venv/
+venv/
+
+# Node / frontend build
+node_modules/
+dist/
+
+# Logs & run output
+*.log
+*.out
+logs/
+output/
+
+# Vendored third-party libs (large; not part of this repo's source)
+CodeFormer/
+gfpgan/
+
+# Model weights / training checkpoints / comparison artifacts
+model_comparison/
+*.safetensors
+*.pth
+*.ckpt
+*.bin
+
+# Media artifacts (eval/demo renders, e.g. docs/runs)
+*.mp4
+
+# Secrets
+.env

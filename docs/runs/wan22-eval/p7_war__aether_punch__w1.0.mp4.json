@@ -1,0 +1,18 @@
+{
+  "prompt_id": "p7_war",
+  "prompt": "A vast battlefield of ancient warriors clashing with swords and shields on dusty open plains, banners and chariots in the distance, soldiers in armor charging forward, dramatic golden hour light, dust and motion, cinematic Mahabharata epic",
+  "lora_id": "aether_punch",
+  "lora_weight": 1.0,
+  "seed": 1234,
+  "frames": 121,
+  "fps": 24,
+  "h": 480,
+  "w": 832,
+  "steps": 40,
+  "guidance": 5.0,
+  "out": "/home/akash/PycharmProjects/video-app/docs/runs/wan22-eval/p7_war__aether_punch__w1.0.mp4",
+  "load_ok": true,
+  "error": null,
+  "wall_clock_s": 241.8,
+  "gen_ok": true
+}

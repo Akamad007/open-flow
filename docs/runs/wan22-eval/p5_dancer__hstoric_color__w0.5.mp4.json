@@ -1,0 +1,19 @@
+{
+  "prompt_id": "p5_dancer",
+  "prompt": "A woman in a flowing red dress dancing and twirling in a sunlit ballroom, full body visible, evening light through tall windows, hair and fabric in motion, cinematic",
+  "lora_id": "hstoric_color",
+  "lora_weight": 0.5,
+  "seed": 1234,
+  "frames": 121,
+  "fps": 24,
+  "h": 480,
+  "w": 832,
+  "steps": 40,
+  "guidance": 5.0,
+  "out": "/home/akash/PycharmProjects/video-app/docs/runs/wan22-eval/p5_dancer__hstoric_color__w0.5.mp4",
+  "load_ok": true,
+  "error": null,
+  "adapter_name": "hstoric_color",
+  "wall_clock_s": 242.6,
+  "gen_ok": true
+}

@@ -1,0 +1,18 @@
+{
+  "prompt_id": "p5_dancer",
+  "prompt": "A woman in a flowing red dress dancing and twirling in a sunlit ballroom, full body visible, evening light through tall windows, hair and fabric in motion, cinematic",
+  "lora_id": "aether_punch",
+  "lora_weight": 1.0,
+  "seed": 1234,
+  "frames": 121,
+  "fps": 24,
+  "h": 480,
+  "w": 832,
+  "steps": 40,
+  "guidance": 5.0,
+  "out": "/home/akash/PycharmProjects/video-app/docs/runs/wan22-eval/p5_dancer__aether_punch__w1.0.mp4",
+  "load_ok": true,
+  "error": null,
+  "wall_clock_s": 241.5,
+  "gen_ok": true
+}

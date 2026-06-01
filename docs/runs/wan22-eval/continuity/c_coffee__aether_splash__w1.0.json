@@ -1,0 +1,20 @@
+{
+  "tag": "c_coffee__aether_splash__w1.0",
+  "scene_id": "c_coffee",
+  "prompt": "A man in a knitted sweater sitting at a wooden cafe table, slowly lifting a ceramic coffee cup to his lips, soft window light from the left, steam rising from the cup, warm bokeh background",
+  "lora_id": "aether_splash",
+  "lora_weight": 1.0,
+  "seed": 1234,
+  "frames_per_clip": 121,
+  "fps": 24,
+  "h": 480,
+  "w": 832,
+  "steps": 40,
+  "guidance": 5.0,
+  "final": "/home/akash/PycharmProjects/video-app/docs/runs/wan22-eval/continuity/c_coffee__aether_splash__w1.0.mp4",
+  "clip1_lora_ok": true,
+  "clip1_wall_s": 242.3,
+  "clip2_lora_ok": true,
+  "clip2_wall_s": 242.7,
+  "ok": true
+}
