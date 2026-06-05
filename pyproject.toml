@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openflow"
+version = "0.1.0"
+description = "OpenFlow — multi-agent AI story-to-video generation system"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Akash Deshpande" }]
+keywords = ["video-generation", "ai", "diffusion-models", "fastapi", "celery"]
+
+[project.urls]
+Homepage = "https://github.com/akamad007/openflow"
+Issues = "https://github.com/akamad007/openflow/issues"
+
+[tool.setuptools]
+package-dir = { "" = "backend" }
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+include = ["app*"]
+
+# ── Lint / format ──
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["backend/lora_training", "scripts", "*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501", "B008"]  # line length handled by formatter; B008 = FastAPI Depends() default
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = false
+# Gradually tighten; informational in CI for now.
+check_untyped_defs = true
+
+# ── Coverage ──
+[tool.coverage.run]
+source = ["backend/app"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

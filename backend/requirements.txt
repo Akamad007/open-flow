@@ -28,8 +28,13 @@ google-auth-httplib2==0.4.0
 # ── Utilities ──
 python-multipart==0.0.9
 python-dotenv==1.0.1
+PyYAML>=6.0          # LoRA catalog / config parsing
+yt-dlp>=2024.0       # source-clip download helper
 
 # ── AI / ML (image & video generation) ──
+# GPU users: install a CUDA build of torch from the official index, e.g.
+#   pip install torch --index-url https://download.pytorch.org/whl/cu128
+# A plain `pip install` here yields a CPU build (fine for stub mode).
 diffusers>=0.30.0
 transformers>=4.40.0
 accelerate>=0.30.0

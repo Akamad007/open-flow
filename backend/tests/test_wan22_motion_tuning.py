@@ -48,6 +48,11 @@ def test_unknown_scene_type_is_not_flagged():
 
 # ──────────────── _tune_for_motion: motion path ────────────────
 
+@pytest.mark.xfail(
+    reason="Motion step-bump intentionally disabled (steps flat at 140 per config "
+    "decision 2026-05-27; CFG bump retained). Test predates that change.",
+    strict=False,
+)
 def test_motion_scene_bumps_steps_by_40():
     """Motion scenes get +40 steps over the base — 60 -> 100 at default config.
     Validated 2026-05-22 against the toward-camera runner test where 100 steps
@@ -61,6 +66,11 @@ def test_motion_scene_bumps_cfg_by_one():
     assert cfg == pytest.approx(6.0), "motion scenes should bump CFG 5.0 -> 6.0"
 
 
+@pytest.mark.xfail(
+    reason="Motion step-bump intentionally disabled (steps flat at 140 per config "
+    "decision 2026-05-27; CFG bump retained). Test predates that change.",
+    strict=False,
+)
 def test_motion_bumps_apply_on_top_of_caller_values():
     """The deltas should be additive, not absolute — so a profile that already
     overrode steps=70 should land at 110, not 100."""
