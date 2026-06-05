@@ -25,8 +25,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(
-    title="Story-to-Video Generator",
-    description="Multi-agent system for converting stories into cinematic videos",
+    title="OpenFlow",
+    description="OpenFlow — multi-agent system for converting stories into cinematic videos",
     version="0.1.0",
     lifespan=lifespan,
 )

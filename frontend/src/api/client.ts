@@ -1,4 +1,4 @@
-/** API client for the StoryVideo backend. */
+/** API client for the OpenFlow backend. */
 
 const BASE = '/api';
 

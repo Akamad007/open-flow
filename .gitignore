@@ -1,4 +1,4 @@
-# StoryVideo generated assets
+# OpenFlow generated assets
 storage/
 
 # Python
@@ -33,6 +33,32 @@ model_comparison/
 
 # Media artifacts (eval/demo renders, e.g. docs/runs)
 *.mp4
+
+# ── OSS-release hygiene (kept on disk, removed from git tracking) ──
+# Eval / run artifacts (images, json, reports under docs/runs)
+docs/runs/
+# LoRA training datasets & checkpoints (large)
+backend/lora_training/**/*.png
+backend/lora_training/**/*.jpg
+backend/lora_training/**/*.pt
+backend/lora_training/**/*.pkl
+# Image media generally (datasets, samples) — keep source SVGs/icons tracked explicitly if needed
+# (intentionally NOT a blanket *.png/*.jpg ignore to avoid hiding real UI assets)
+# Local agent / IDE config
+.claude/settings.local.json
+# Frontend build cache
+frontend/tsconfig.tsbuildinfo
+# Personal / non-product content (kept locally, not part of the OSS project)
+seed_buddha_enlightenment.py
+seed_krishna_ads.py
+seed_sadhguru_enlightenment.py
+seed_tarot_arcana.py
+tarot_render_driver.py
+apply_tarot_sfw.py
+tarot_render.log
+alai_alai_meaning.md
+buddha_captions.md
+docs/krishna-*.md
 
 # Secrets
 .env
