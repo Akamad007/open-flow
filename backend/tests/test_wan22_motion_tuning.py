@@ -48,17 +48,12 @@ def test_unknown_scene_type_is_not_flagged():
 
 # ──────────────── _tune_for_motion: motion path ────────────────
 
-@pytest.mark.xfail(
-    reason="Motion step-bump intentionally disabled (steps flat at 140 per config "
-    "decision 2026-05-27; CFG bump retained). Test predates that change.",
-    strict=False,
-)
-def test_motion_scene_bumps_steps_by_40():
-    """Motion scenes get +40 steps over the base — 60 -> 100 at default config.
-    Validated 2026-05-22 against the toward-camera runner test where 100 steps
-    eliminated the face/body distortion seen at 55 steps."""
+def test_motion_scene_bumps_steps_by_configured_delta():
+    """Motion scenes add `_MOTION_STEP_BUMP` steps on top of the caller value.
+    The bump was +40 historically; it is currently 0 (base is 140 directly, per
+    the 2026-05-27 decision), so the test tracks the constant, not a literal."""
     steps, cfg, neg = p._tune_for_motion("action_running", 60, 5.0, "")
-    assert steps == 100, "motion scenes should bump steps from 60 -> 100"
+    assert steps == 60 + p._MOTION_STEP_BUMP
 
 
 def test_motion_scene_bumps_cfg_by_one():
@@ -66,17 +61,12 @@ def test_motion_scene_bumps_cfg_by_one():
     assert cfg == pytest.approx(6.0), "motion scenes should bump CFG 5.0 -> 6.0"
 
 
-@pytest.mark.xfail(
-    reason="Motion step-bump intentionally disabled (steps flat at 140 per config "
-    "decision 2026-05-27; CFG bump retained). Test predates that change.",
-    strict=False,
-)
 def test_motion_bumps_apply_on_top_of_caller_values():
-    """The deltas should be additive, not absolute — so a profile that already
-    overrode steps=70 should land at 110, not 100."""
+    """The deltas are additive on top of caller values:
+    steps += _MOTION_STEP_BUMP, cfg += _MOTION_CFG_DELTA."""
     steps, cfg, _ = p._tune_for_motion("dancing_high_motion", 70, 5.5, "")
-    assert steps == 110
-    assert cfg == pytest.approx(6.5)
+    assert steps == 70 + p._MOTION_STEP_BUMP
+    assert cfg == pytest.approx(5.5 + p._MOTION_CFG_DELTA)
 
 
 # ──────────────── _tune_for_motion: static path ────────────────
