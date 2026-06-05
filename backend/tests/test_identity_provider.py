@@ -179,8 +179,8 @@ def test_image_pregen_factory_falls_back_when_script_missing(monkeypatch, tmp_pa
     from app.config import settings
 
     monkeypatch.setattr(settings, "identity_provider_enabled", True)
-    # Point HOME at a tmp dir so the InstantID script is "not found".
-    monkeypatch.setenv("HOME", str(tmp_path))
+    # Point instantid_dir at an empty tmp dir so the scripts are "not found".
+    monkeypatch.setattr(settings, "instantid_dir", str(tmp_path / "instantid"))
     from app.orchestration._common import get_identity_image_provider, get_image_provider
 
     p = get_identity_image_provider()
