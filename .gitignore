@@ -59,6 +59,7 @@ tarot_render.log
 alai_alai_meaning.md
 buddha_captions.md
 docs/krishna-*.md
+run_queue_*.py
 
 # Secrets
 .env
