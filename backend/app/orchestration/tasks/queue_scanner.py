@@ -22,6 +22,7 @@ from app.models.asset import Asset, AssetType
 from app.models.episode import Episode, EpisodeStatus
 from app.models.project import Project, ProjectStatus
 from app.models.render_job import JobStatus, JobType, RenderJob
+from app.utils.gpu_routing import assign_project_gpu, assigned_gpu, pick_free_gpu
 
 logger = logging.getLogger(__name__)
 
@@ -137,9 +138,12 @@ async def scan_and_dispatch() -> str:
                 )
                 p.updated_at = now
                 await db.commit()
+                # Keep the orphan on its assigned card (refresh TTL / re-pin
+                # after a redis flush) so resume lands on the same GPU.
+                assign_project_gpu(str(p.id), assigned_gpu(str(p.id)))
                 from app.orchestration.tasks.full_pipeline import task_run_full_pipeline
                 task_run_full_pipeline.delay(str(p.id))
-                return f"resumed orphan {p.id} ({p.status.value})"
+                return f"resumed orphan {p.id} ({p.status.value}) → gpu{assigned_gpu(str(p.id))}"
 
         # Single-flight on the cpu worker: if any project is currently in an
         # LLM stage, don't dispatch a new draft (would race the same worker).
@@ -189,8 +193,14 @@ async def scan_and_dispatch() -> str:
             if since < INTER_PROJECT_COOLDOWN_S:
                 return f"cooldown {INTER_PROJECT_COOLDOWN_S - int(since)}s before next dispatch"
 
+        # Pin the new project to a free GPU so it renders in parallel with
+        # any project already running on another card. No free card → wait.
+        gpu = pick_free_gpu([str(p.id) for p in active])
+        if gpu is None:
+            return "all GPUs busy"
+        assign_project_gpu(str(draft.id), gpu)
         draft.status = ProjectStatus.analyzing
         await db.commit()
         from app.orchestration.tasks.full_pipeline import task_run_full_pipeline
         task_run_full_pipeline.delay(str(draft.id))
-        return f"dispatched draft {draft.id}"
+        return f"dispatched draft {draft.id} → gpu{gpu}"

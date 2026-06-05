@@ -12,6 +12,7 @@ WeakKeyDictionary cleans up automatically when the loop is gc'd.
 """
 
 import asyncio
+import os
 import subprocess
 import weakref
 from contextlib import asynccontextmanager
@@ -31,6 +32,12 @@ def _gpu_count() -> int:
         return sum(1 for line in out.stdout.splitlines() if line.startswith("GPU "))
     except (FileNotFoundError, subprocess.SubprocessError):
         return 0
+
+
+def gpu_count() -> int:
+    """Number of physical GPUs visible (min 0). Public wrapper over the
+    cached probe — used by the multi-GPU router to size the queue set."""
+    return _gpu_count()
 
 
 @lru_cache(maxsize=1)
@@ -106,8 +113,12 @@ def get_pool() -> GPUPool:
     loop = asyncio.get_event_loop()
     pool = _pools.get(loop)
     if pool is None:
-        n = _gpu_count()
-        pool = GPUPool(list(range(n)) if n > 0 else [0])
+        pin = os.environ.get("IMAGE_GEN_GPU_INDEX")
+        if pin is not None:
+            pool = GPUPool([int(pin)])
+        else:
+            n = _gpu_count()
+            pool = GPUPool(list(range(n)) if n > 0 else [0])
         _pools[loop] = pool
     return pool
 
