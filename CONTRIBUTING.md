@@ -70,6 +70,18 @@ providers — use the stubs and fixtures in `backend/tests/`.
 - TypeScript: `eslint` + `prettier`.
 - Install the git hooks: `pre-commit install`.
 
+## Conventions
+
+- **Database migrations:** create with `alembic revision --autogenerate -m
+  "short description"`; give the file a descriptive slug. Review the generated
+  SQL before committing. Never edit an already-released migration.
+- **Internationalization:** the UI and prompts are English-only today. Strings
+  are not yet externalized; i18n contributions are welcome — start by extracting
+  user-facing strings into constants.
+- **Accessibility:** the frontend is a known gap (tabs are not yet semantic
+  `tablist`/`tab` with keyboard navigation). a11y improvements are very welcome;
+  run `axe`/Pa11y against changed pages.
+
 ## Submitting changes
 
 1. Fork and branch from `main` (`feat/...`, `fix/...`, `docs/...`).
