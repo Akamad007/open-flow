@@ -50,7 +50,7 @@ ENCODER_VERSION = "buffalo_l-v1"
 # Subprocess that extracts and writes a single .idemb.pt for a portrait.
 # Lives outside the app for the same reason SD 3.5 lives in ~/sd35-medium:
 # heavyweight model loads, fully released after each call.
-EMBED_SCRIPT = Path.home() / "instantid" / "extract_embedding.py"
+EMBED_SCRIPT = Path(cfg.instantid_dir) / "extract_embedding.py"
 
 
 def _embedding_path(portrait_path: str) -> Path:

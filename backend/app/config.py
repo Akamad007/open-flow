@@ -3,11 +3,19 @@ Application configuration via environment variables.
 Uses pydantic-settings for typed, validated config.
 """
 
+import os
 from pathlib import Path
 from typing import List
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Repo root (…/video-app) and the external model store, both overridable via
+# env. Keeping these env-driven is what lets the app run on a machine that is
+# not the original developer's. MODELS_ROOT defaults to <repo>/models; point it
+# at wherever the multi-GB weights live (see docs/MODELS_AND_WEIGHTS.md).
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_MODELS_ROOT = Path(os.getenv("MODELS_ROOT", str(_REPO_ROOT / "models")))
 
 
 class Settings(BaseSettings):
@@ -46,12 +54,12 @@ class Settings(BaseSettings):
     # Wan 2.2 TI2V-5B settings — empirically validated baseline (832×480, 121f, 40 steps, CFG 5.0).
     # Generates ~5s @ 24fps. LoRA + post-process picked per-scene by the provider's classifier
     # against backend/app/config/wan22_lora_catalog.yaml.
-    wan22_model_path: str = "/home/akash/Wan2.2-Models/TI2V-5B-Diffusers"
+    wan22_model_path: str = str(_MODELS_ROOT / "wan22" / "TI2V-5B-Diffusers")
     # Motion-specialized fine-tune (UVA CV Lab). Used for motion scenes only —
     # see _is_motion_scene in wan22_provider.py. Falls back to wan22_model_path
     # if the path doesn't exist.
-    wan22_motion_model_path: str = "/home/akash/Wan2.2-Models/FrameINO-5B-MotionINO-v1.6"
-    wan22_lora_dir: str = "/home/akash/Wan2.2-Models/loras/5b"
+    wan22_motion_model_path: str = str(_MODELS_ROOT / "wan22" / "FrameINO-5B-MotionINO-v1.6")
+    wan22_lora_dir: str = str(_MODELS_ROOT / "wan22" / "loras" / "5b")
     wan22_height: int = 384
     wan22_width: int = 640
     wan22_num_frames: int = 121  # 5.04s @ 24fps
@@ -76,7 +84,7 @@ class Settings(BaseSettings):
 
     # ── Audio Provider ──
     audio_provider: str = "stub"  # chatterbox | stub
-    chatterbox_reference_audio: Path = Path("/home/akash/PycharmProjects/video-app/storage/audio/narrator_reference.wav")
+    chatterbox_reference_audio: Path = _REPO_ROOT / "storage" / "audio" / "narrator_reference.wav"
     chatterbox_max_chunk_chars: int = 500
 
     # ── Image Provider (SD 3.5 Medium) ──
@@ -117,6 +125,10 @@ class Settings(BaseSettings):
     instantid_daemon_enabled: bool = True
     identity_strength: float = 0.80   # tuned from smoke test (was 0.85)
     pose_strength: float = 0.65       # OpenPose ControlNet strength when dual-CN is active
+    # External InstantID scripts dir (generate_instantid*.py, daemon). Not
+    # bundled with this repo — install separately and point here. Override with
+    # INSTANTID_DIR; defaults to ~/instantid for backward compatibility.
+    instantid_dir: str = os.getenv("INSTANTID_DIR", str(Path.home() / "instantid"))
     hf_token: str = ""  # HF_TOKEN env var — required for SD 3.5
 
 
@@ -152,6 +164,12 @@ class Settings(BaseSettings):
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
     cors_origins: List[str] = Field(default=["http://localhost:5173"])
+
+    # ── API security ──
+    # When non-empty, every /api route requires an `X-API-Key: <value>` header.
+    # Empty (default) = auth disabled — acceptable for a trusted LAN/dev box,
+    # NOT for public exposure. See SECURITY.md.
+    api_key: str = ""
 
     # ── Celery ──
     celery_broker_url: str = "redis://localhost:6379/0"

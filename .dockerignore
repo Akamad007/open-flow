@@ -1,0 +1,47 @@
+# Keep build context small and free of secrets / local artifacts.
+.git
+.gitignore
+.github
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+
+# Virtualenvs & node deps (reinstalled in the image)
+**/.venv/
+**/venv/
+backend/.venv/
+frontend/node_modules/
+frontend/dist/
+
+# Secrets & local config
+.env
+.env.*
+!.env.example
+!.env.stub
+.claude/
+
+# Generated assets, weights, vendored libs (mounted/downloaded at runtime)
+storage/
+backend/storage/
+backend/output/
+models/
+model_comparison/
+CodeFormer/
+gfpgan/
+backend/lora_training/
+docs/runs/
+
+# Logs & misc
+*.log
+*.out
+frontend/tsconfig.tsbuildinfo
+
+# Personal / non-product content (not part of the OSS image)
+seed_buddha_enlightenment.py
+seed_krishna_ads.py
+seed_sadhguru_enlightenment.py
+seed_tarot_arcana.py
+tarot_render_driver.py
+apply_tarot_sfw.py

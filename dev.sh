@@ -12,10 +12,13 @@
 
 set -euo pipefail
 
-CELERY="/home/akash/.pyenv/versions/video-app/bin/celery"
 BACKEND_DIR="$(cd "$(dirname "$0")/backend" && pwd)"
 
-PYTHON="/home/akash/.pyenv/versions/video-app/bin/python"
+# Resolve interpreter portably: $PYTHON_BIN > repo venv > PATH.
+PYTHON="${PYTHON_BIN:-$BACKEND_DIR/.venv/bin/python}"
+[ -x "$PYTHON" ] || PYTHON="$(command -v python3)"
+CELERY="${CELERY_BIN:-$(dirname "$PYTHON")/celery}"
+[ -x "$CELERY" ] || CELERY="$(command -v celery)"
 
 flush_redis() {
     echo "🔴 Flushing Redis (clearing queue, locks, results)..."
