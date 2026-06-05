@@ -76,6 +76,9 @@ export const api = {
   // Scenes
   listScenes: (projectId: string) => request<import('../types').Scene[]>(`/projects/${projectId}/scenes`),
   getScene: (id: string) => request<import('../types').Scene>(`/scenes/${id}`),
+  createScene: (projectId: string, data: Record<string, unknown>) =>
+    request<import('../types').Scene>(`/projects/${projectId}/scenes`, { method: 'POST', body: JSON.stringify(data) }),
+  deleteScene: (id: string) => request<void>(`/scenes/${id}`, { method: 'DELETE' }),
   updateScene: (id: string, data: Record<string, unknown>) =>
     request<import('../types').Scene>(`/scenes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   updateScenePrompt: (id: string, data: Record<string, unknown>) =>

@@ -4,11 +4,12 @@ import uuid
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
+from app.models.episode import Episode
 from app.models.project import Project
 from app.models.scene import Scene
 from app.models.scene_prompt import ScenePrompt
@@ -49,13 +50,25 @@ async def create_scene(
     data: SceneCreate,
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a scene in the project's active episode."""
+    """Create a scene, appended to the end of the given (or active) episode."""
     if not await db.get(Project, project_id):
         raise HTTPException(status_code=404, detail="Project not found")
-    episode = await resolve_active_episode(db, str(project_id))
-    if episode is None:
-        raise HTTPException(status_code=400, detail="Project has no active episode to add a scene to")
-    scene = Scene(project_id=project_id, episode_id=episode.id, **data.model_dump())
+    if data.episode_id is not None:
+        episode = await db.get(Episode, data.episode_id)
+        if episode is None or episode.project_id != project_id:
+            raise HTTPException(status_code=400, detail="episode_id does not belong to this project")
+    else:
+        episode = await resolve_active_episode(db, str(project_id))
+        if episode is None:
+            raise HTTPException(status_code=400, detail="Project has no active episode; pass episode_id")
+    max_idx = (await db.execute(
+        select(func.max(Scene.order_index)).where(Scene.episode_id == episode.id)
+    )).scalar()
+    fields = data.model_dump(exclude={"episode_id", "order_index"})
+    scene = Scene(
+        project_id=project_id, episode_id=episode.id,
+        order_index=0 if max_idx is None else max_idx + 1, **fields,
+    )
     db.add(scene)
     await db.flush()
     return SceneRead.model_validate(await _load_scene(db, scene.id))

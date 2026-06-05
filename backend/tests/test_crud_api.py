@@ -105,6 +105,31 @@ async def test_scene_create_list_delete(client, db_session):
     assert r.status_code == 404
 
 
+async def test_scene_create_appends_order_index(client, db_session):
+    """Repeated adds append to the end of the episode instead of colliding on 0."""
+    p = await _project_with_episode(db_session)
+    idxs = []
+    for _ in range(3):
+        r = await client.post(f"/api/projects/{p.id}/scenes", json={"order_index": 0})
+        assert r.status_code == 201, r.text
+        idxs.append(r.json()["order_index"])
+    assert idxs == sorted(idxs) and len(set(idxs)) == 3, idxs
+
+
+async def test_scene_create_explicit_episode(client, db_session):
+    p = await _project_with_episode(db_session)
+    ep_id = (await client.get(f"/api/projects/{p.id}/episodes")).json()[0]["id"]
+    r = await client.post(f"/api/projects/{p.id}/scenes", json={"episode_id": ep_id})
+    assert r.status_code == 201, r.text
+    assert r.json()["episode_id"] == ep_id
+
+
+async def test_scene_create_foreign_episode_rejected(client, db_session):
+    p = await _project_with_episode(db_session)
+    r = await client.post(f"/api/projects/{p.id}/scenes", json={"episode_id": str(uuid.uuid4())})
+    assert r.status_code == 400, r.text
+
+
 @pytest.mark.parametrize("resource", ["characters", "locations", "products", "scenes"])
 async def test_delete_missing_returns_404(client, resource):
     r = await client.delete(f"/api/{resource}/{uuid.uuid4()}")
