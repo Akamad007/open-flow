@@ -162,13 +162,38 @@ async def _resolve_last_frame_from_prev_episode(
     return None
 
 
+def _last_frame_path(project_id: str, episode_id: str, order_index: int) -> Optional[str]:
+    """Resolve an on-disk last_frame.png for a scene order_index (new + legacy layout)."""
+    candidate = _episode_last_frame_dir(project_id, episode_id) / f"scene_{order_index:03d}_last_frame.png"
+    legacy = settings.storage_root / "temp" / project_id / f"scene_{order_index:03d}_last_frame.png"
+    if candidate.exists():
+        return str(candidate)
+    if legacy.exists():
+        return str(legacy)
+    return None
+
+
+async def _explicit_prev_last_frame(
+    db: AsyncSession, project_id: str, scene: Scene, episode: Episode,
+) -> Optional[str]:
+    """When the user pinned a continuity predecessor in the UI, seed from that
+    scene's last frame (same episode only). Returns None if it isn't rendered yet."""
+    prev = await db.get(Scene, scene.continuity_prev_scene_id)
+    if prev is None or prev.episode_id != episode.id:
+        return None
+    return _last_frame_path(project_id, str(episode.id), prev.order_index)
+
+
 async def _resolve_last_frame(
     db: AsyncSession, project_id: str, scene: Scene, episode: Episode,
 ) -> Optional[str]:
-    """Smart I2V-seed picker. Returns the path to the most-recent prior
-    scene's last_frame.png whose character set overlaps with the current
-    scene's. For scene 0 of episode N≥1, chains off the previous episode's
-    last frame when continue_from_previous=true."""
+    """Smart I2V-seed picker. An explicit continuity_prev_scene_id (UI-pinned)
+    wins over everything. Otherwise returns the most-recent prior scene's
+    last_frame.png whose character set overlaps with the current scene's. For
+    scene 0 of episode N≥1, chains off the previous episode's last frame when
+    continue_from_previous=true."""
+    if getattr(scene, "continuity_prev_scene_id", None):
+        return await _explicit_prev_last_frame(db, project_id, scene, episode)
     if getattr(scene, "skip_last_frame_chain", False):
         logger.info("Scene %d: skip_last_frame_chain=True, rendering without I2V seed", scene.order_index)
         return None
@@ -309,20 +334,26 @@ async def _assert_prev_scene_chain(
     Re-extracts the PNG if the video exists but the frame file is missing.
     Raises RuntimeError when the previous video itself is missing so the caller
     can pause/requeue rather than render a chain-broken scene."""
-    if scene.order_index == 0:
-        return
-    if getattr(episode, "anchor_first_frame", False):
-        return
-    if getattr(scene, "skip_last_frame_chain", False):
-        return
-    prev = (await db.execute(
-        select(Scene)
-        .where(Scene.episode_id == episode.id)
-        .where(Scene.order_index == scene.order_index - 1)
-        .limit(1)
-    )).scalar_one_or_none()
-    if prev is None:
-        return
+    explicit_id = getattr(scene, "continuity_prev_scene_id", None)
+    if explicit_id is not None:
+        prev = await db.get(Scene, explicit_id)
+        if prev is None or prev.episode_id != episode.id:
+            return
+    else:
+        if scene.order_index == 0:
+            return
+        if getattr(episode, "anchor_first_frame", False):
+            return
+        if getattr(scene, "skip_last_frame_chain", False):
+            return
+        prev = (await db.execute(
+            select(Scene)
+            .where(Scene.episode_id == episode.id)
+            .where(Scene.order_index == scene.order_index - 1)
+            .limit(1)
+        )).scalar_one_or_none()
+        if prev is None:
+            return
     prev_asset = await _existing_complete_video(db, prev.id)
     if prev_asset is None:
         raise RuntimeError(

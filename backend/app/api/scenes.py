@@ -107,6 +107,8 @@ async def update_scene(
         raise HTTPException(status_code=404, detail="Scene not found")
 
     update_data = data.model_dump(exclude_unset=True)
+    if update_data.get("continuity_prev_scene_id") == scene_id:
+        raise HTTPException(status_code=400, detail="A scene cannot be its own continuity predecessor")
     for key, value in update_data.items():
         setattr(scene, key, value)
 
