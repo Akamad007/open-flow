@@ -33,7 +33,7 @@ class WanPhantomVideoProvider(VideoProvider):
     """Phantom-Wan 14B via wan_generate.py subprocess."""
 
     def __init__(self):
-        self._script_path = Path(__file__).parent.parent.parent.parent.parent / "wan_generate.py"
+        self._script_path = Path(__file__).parent.parent.parent.parent.parent / "engines" / "wan_generate.py"
         self._active_jobs: dict[str, asyncio.subprocess.Process] = {}
 
     async def generate_video(

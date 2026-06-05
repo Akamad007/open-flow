@@ -5,14 +5,14 @@
 # Guarantees: EXACTLY 1 worker, concurrency=1, GPU-safe
 #
 # Usage:
-#   ./dev.sh            — kill existing, start fresh worker
-#   ./dev.sh stop       — kill all workers
-#   ./dev.sh status     — show worker processes
+#   ./scripts/dev.sh            — kill existing, start fresh worker
+#   ./scripts/dev.sh stop       — kill all workers
+#   ./scripts/dev.sh status     — show worker processes
 # ─────────────────────────────────────────────────────────────────
 
 set -euo pipefail
 
-BACKEND_DIR="$(cd "$(dirname "$0")/backend" && pwd)"
+BACKEND_DIR="$(cd "$(dirname "$0")/../backend" && pwd)"
 
 # Resolve interpreter portably: $PYTHON_BIN > repo venv > PATH.
 PYTHON="${PYTHON_BIN:-$BACKEND_DIR/.venv/bin/python}"
@@ -78,8 +78,8 @@ case "${1:-start}" in
             WORKER_COUNT=$(pgrep -f "celery worker" | wc -l || echo 0)
             echo "✅ Worker running  (PID=$WPID, processes=$WORKER_COUNT)"
             echo ""
-            echo "   To stop:   ./dev.sh stop"
-            echo "   To reload: ./dev.sh  (kills old, starts fresh)"
+            echo "   To stop:   ./scripts/dev.sh stop"
+            echo "   To reload: ./scripts/dev.sh  (kills old, starts fresh)"
             echo "   Tail logs: tail -f $BACKEND_DIR/celery.log"
         else
             echo "❌ Worker failed to start — check celery.log"

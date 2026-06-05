@@ -49,7 +49,7 @@ you install them.
 - **Image only (SD 3.5):** ~12 GB VRAM.
 - **Video (Wan 2.2 TI2V-5B / LTX-13B fp8):** **16 GB+ VRAM** recommended;
   validated on a single 5070 Ti (16 GB) at ~6–8 min/scene. Lower VRAM works at
-  reduced resolution/steps (see `preview.sh`).
+  reduced resolution/steps (see `scripts/preview.sh`).
 - **Multi-GPU:** Celery routes one worker per card (`gpu{i}` queues); set
   `CUDA_DEVICE_ORDER=PCI_BUS_ID`. See the orchestration docs.
 - Disk: budget **60–80 GB** for the full set of weights.

@@ -38,11 +38,11 @@ fi
 
 echo "=== Pre-flight checks ==="
 curl -sf "$BACKEND_URL/api/pipelines" >/dev/null || {
-    echo "ERROR: backend not reachable at $BACKEND_URL. Run ./start_all.sh first."
+    echo "ERROR: backend not reachable at $BACKEND_URL. Run ./scripts/start_all.sh first."
     exit 2
 }
 pgrep -f "celery -A celery_worker" >/dev/null || {
-    echo "ERROR: celery worker not running. Run ./start_all.sh first."
+    echo "ERROR: celery worker not running. Run ./scripts/start_all.sh first."
     exit 2
 }
 echo "  ✓ backend reachable at $BACKEND_URL"

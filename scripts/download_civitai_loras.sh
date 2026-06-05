@@ -50,4 +50,4 @@ done <<< "$LORAS"
 
 echo
 echo "All done. Restart celery workers so the catalog reload picks up the new LoRAs:"
-echo "  ./start_all.sh stop && ./start_all.sh"
+echo "  ./scripts/start_all.sh stop && ./scripts/start_all.sh"

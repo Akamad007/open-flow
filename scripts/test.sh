@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run with: bash test.sh
+# Run with: bash scripts/test.sh
 # Make sure the video-app pyenv virtualenv is active first:
 #   pyenv activate video-app
 set -euo pipefail

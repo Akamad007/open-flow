@@ -6,13 +6,13 @@
 # the worker to default settings when the preview finishes.
 #
 # Usage:
-#   ./preview.sh                  # full preview run, ~5 min
-#   ./preview.sh --keep-env       # leave the worker on preview settings
+#   ./scripts/preview.sh                  # full preview run, ~5 min
+#   ./scripts/preview.sh --keep-env       # leave the worker on preview settings
 #                                 # (use for iterating multiple projects)
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PYTHON="${PYTHON_BIN:-$ROOT/backend/.venv/bin/python}"
 [ -x "$PYTHON" ] || PYTHON="$(command -v python3)"
 KEEP_ENV=0
@@ -31,7 +31,7 @@ export SD35_CHAR_WIDTH=512
 export SD35_CHAR_HEIGHT=512
 
 # Restart celery so the worker process inherits these env vars
-"$ROOT/dev.sh" start >/dev/null 2>&1
+"$ROOT/scripts/dev.sh" start >/dev/null 2>&1
 until tail -3 "$ROOT/backend/celery.log" 2>/dev/null | grep -q "ready"; do sleep 1; done
 echo "✅ Worker ready (preview settings)"
 
@@ -44,7 +44,7 @@ if [[ $KEEP_ENV -eq 0 ]]; then
     echo "🔄 Restoring celery to DEFAULT (full-res) settings…"
     unset LTX_HEIGHT LTX_WIDTH LTX_NUM_FRAMES LTX_INFERENCE_STEPS \
           LTX_FPS SD35_STEPS SD35_CHAR_WIDTH SD35_CHAR_HEIGHT
-    "$ROOT/dev.sh" start >/dev/null 2>&1
+    "$ROOT/scripts/dev.sh" start >/dev/null 2>&1
     until tail -3 "$ROOT/backend/celery.log" 2>/dev/null | grep -q "ready"; do sleep 1; done
     echo "✅ Worker restored to default settings"
 fi

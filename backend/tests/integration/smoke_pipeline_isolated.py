@@ -145,7 +145,7 @@ def step3_video() -> bool:
         return False
     if VIDEO_PATH.exists():
         VIDEO_PATH.unlink()
-    ltx = ROOT.parent / "ltx_generate.py"
+    ltx = ROOT.parent / "engines" / "ltx_generate.py"
     cmd = [
         sys.executable, str(ltx),
         "--prompt", "A cinematic shot of an athletic young man kneeling on parched cracked earth.",

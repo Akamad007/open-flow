@@ -17,7 +17,7 @@ Confirm Postgres is up and the database exists.
 switch to `LLM_PROVIDER=stub` for offline dev.
 
 **CUDA out of memory** — lower resolution/steps (`LTX_*` / `WAN22_*` / `SD35_*`),
-or use `preview.sh` settings; ensure one Celery worker per GPU
+or use `scripts/preview.sh` settings; ensure one Celery worker per GPU
 (`--concurrency=1`).
 
 **Model path not found** — a `WAN22_*` path or `MODELS_ROOT` points nowhere. Run

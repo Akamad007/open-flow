@@ -59,8 +59,8 @@ services:
     volumes:
       - ./backend:/app
       - ./storage:/app/storage
-      - ./ltx_generate.py:/app/ltx_generate.py:ro
-      - ./chatterbox_generate.py:/app/chatterbox_generate.py:ro
+      - ./engines/ltx_generate.py:/app/engines/ltx_generate.py:ro
+      - ./engines/chatterbox_generate.py:/app/engines/chatterbox_generate.py:ro
     depends_on:
       db:
         condition: service_healthy
@@ -94,8 +94,8 @@ services:
     volumes:
       - ./backend:/app
       - ./storage:/app/storage
-      - ./ltx_generate.py:/app/ltx_generate.py:ro
-      - ./chatterbox_generate.py:/app/chatterbox_generate.py:ro
+      - ./engines/ltx_generate.py:/app/engines/ltx_generate.py:ro
+      - ./engines/chatterbox_generate.py:/app/engines/chatterbox_generate.py:ro
     depends_on:
       db:
         condition: service_healthy

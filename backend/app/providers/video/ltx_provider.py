@@ -193,7 +193,7 @@ class LTXVideoProvider(VideoProvider):
     """
 
     def __init__(self):
-        self._script_path = Path(__file__).parent.parent.parent.parent.parent / "ltx_generate.py"
+        self._script_path = Path(__file__).parent.parent.parent.parent.parent / "engines" / "ltx_generate.py"
         self._active_jobs: dict[str, asyncio.subprocess.Process] = {}
 
     async def generate_video(

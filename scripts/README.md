@@ -1,10 +1,10 @@
 # scripts/
 
 Production / operator tooling the app or launchers rely on. These are run by
-hand or by `start_all.sh`; they are **not** imported by `backend/app/`.
+hand or by `scripts/start_all.sh`; they are **not** imported by `backend/app/`.
 
 - `queue_scanner.py` — drains draft projects FIFO and watchdogs stuck ones
-  (launched by `start_all.sh`).
+  (launched by `scripts/start_all.sh`).
 - `wan22_face_restore.py`, `wan22_face_restore_codeformer.py` — post-render face
   restoration; invoked at render time per `backend/app/config/wan22_lora_catalog.yaml`.
 - `wan22_fix_zackdfilms.py` — LoRA key-format remap referenced by the catalog.

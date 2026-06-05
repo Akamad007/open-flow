@@ -25,7 +25,7 @@ from PIL import Image
 
 PY = "/home/akash/.pyenv/versions/video-app/bin/python"
 SD35 = "/home/akash/sd35-medium/generate_sd35.py"
-WAN = "/home/akash/PycharmProjects/video-app/wan22_generate.py"
+WAN = "/home/akash/PycharmProjects/video-app/engines/wan22_generate.py"
 OUT = Path("/tmp/test_bag")
 OUT.mkdir(parents=True, exist_ok=True)
 
