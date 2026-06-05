@@ -14,6 +14,7 @@ class SceneClip:
     order_index: int
     target_duration: float  # target duration in seconds
     actual_duration: float | None = None  # actual clip duration
+    caption: str | None = None  # optional on-screen caption burned in at stitch time
 
 
 @dataclass

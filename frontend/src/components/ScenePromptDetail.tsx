@@ -13,18 +13,30 @@ export function ScenePromptDetail({ scene, characters, locations, onSaved }: Pro
   const p = scene.prompt
   const [vp, setVp] = useState(p?.video_prompt || '')
   const [np, setNp] = useState(p?.negative_prompt || '')
+  const [cap, setCap] = useState(scene.caption || '')
   const [busy, setBusy] = useState('')
 
   useEffect(() => {
     setVp(scene.prompt?.video_prompt || '')
     setNp(scene.prompt?.negative_prompt || '')
-  }, [scene.id, scene.prompt?.video_prompt, scene.prompt?.negative_prompt])
+    setCap(scene.caption || '')
+  }, [scene.id, scene.prompt?.video_prompt, scene.prompt?.negative_prompt, scene.caption])
 
   async function savePrompt(rerender: boolean) {
     setBusy(rerender ? 'Saving + re-rendering…' : 'Saving…')
     try {
       await api.updateScenePrompt(scene.id, { video_prompt: vp, negative_prompt: np })
       if (rerender) await api.regenerateScene(scene.id)
+      onSaved?.()
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function saveCaption() {
+    setBusy('Saving caption…')
+    try {
+      await api.updateScene(scene.id, { caption: cap })
       onSaved?.()
     } finally {
       setBusy('')
@@ -55,6 +67,20 @@ export function ScenePromptDetail({ scene, characters, locations, onSaved }: Pro
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
           {scene.visual_summary || 'N/A'}
         </p>
+      </div>
+
+      <div className="form-group">
+        <label className="label">📝 Caption (burned onto the video)</label>
+        <textarea className="input" value={cap} onChange={e => setCap(e.target.value)}
+          rows={2} spellCheck={false}
+          placeholder={scene.visual_summary || 'Short on-screen caption explaining the scene & characters…'}
+          style={{ width: '100%', fontSize: '0.85rem' }} />
+        <div className="flex gap-2 items-center">
+          <button className="btn btn-secondary btn-sm" disabled={!!busy} onClick={saveCaption}>💾 Save caption</button>
+          {sceneCharNames.length > 0 && (
+            <span className="text-xs text-muted">in scene: {sceneCharNames.join(', ')}</span>
+          )}
+        </div>
       </div>
 
       <div className="grid-2">

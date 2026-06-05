@@ -163,6 +163,7 @@ export interface Scene {
   continuity_to_next: string | null;
   target_audio_segment_start: number | null;
   target_audio_segment_end: number | null;
+  caption: string | null;
   location_id: string | null;
   status: SceneStatus;
   locked: boolean;

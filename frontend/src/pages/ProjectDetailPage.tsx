@@ -22,6 +22,10 @@ const assetUrl = (asset: { id: string; file_path: string | null }) => {
   return name ? `/api/assets/${asset.id}/file/${name}` : `/api/assets/${asset.id}/file`
 }
 
+// Caption track saved as a .srt sidecar next to the render, served via /storage.
+const captionSrtUrl = (asset: { file_path: string | null }) =>
+  '/' + (asset.file_path || '').replace(/_captioned\.mp4$/, '_captions.srt')
+
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
@@ -822,6 +826,11 @@ export function ProjectDetailPage() {
                   <a href={assetUrl(finalRender)} download className="btn btn-primary">
                     📥 Download MP4
                   </a>
+                  {finalRender.file_path?.includes('_captioned') && (
+                    <a href={captionSrtUrl(finalRender)} download className="btn btn-secondary">
+                      📝 Download Captions (.srt)
+                    </a>
+                  )}
                   <button className="btn btn-secondary" disabled={!!actionLoading}
                     onClick={() => runAction('stitch', () => api.stitch(projectId!))}>
                     🔄 Re-stitch

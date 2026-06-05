@@ -56,6 +56,7 @@ class Scene(Base):
     duration_seconds: Mapped[float] = mapped_column(Float, nullable=False, default=4.0)
     scene_purpose: Mapped[str | None] = mapped_column(Text, nullable=True)
     visual_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    caption: Mapped[str | None] = mapped_column(Text, nullable=True)  # burned-in on-screen caption
     audio_alignment_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     continuity_from_previous: Mapped[str | None] = mapped_column(Text, nullable=True)
     continuity_to_next: Mapped[str | None] = mapped_column(Text, nullable=True)
