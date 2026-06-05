@@ -59,6 +59,8 @@ async def _maybe_dispatch_pipeline(db: AsyncSession, project: Project) -> None:
 
 @router.get("/projects/{project_id}/episodes", response_model=List[EpisodeList])
 async def list_episodes(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    if not await db.get(Project, project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
     rows = (await db.execute(
         select(Episode).where(Episode.project_id == project_id)
         .order_by(Episode.order_index)

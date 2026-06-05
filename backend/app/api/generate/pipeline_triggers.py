@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import shutil
 import uuid
 from pathlib import Path
 
@@ -21,7 +20,7 @@ from app.models.project import Project, ProjectStatus
 from app.models.render_job import JobStatus, JobType, RenderJob
 from app.models.scene import Scene, SceneStatus
 from app.orchestration.tasks import (
-    task_dispatch_video_chord, task_generate_scene_video,
+    task_dispatch_video_chord,
     task_pregen_images, task_run_full_pipeline,
 )
 
@@ -85,7 +84,7 @@ async def _wipe_videos_for_regen(project_id: uuid.UUID, db: AsyncSession) -> Non
     await db.commit()
 
 
-@router.post("/projects/{project_id}/regenerate-videos")
+@router.post("/projects/{project_id}/regenerate-videos", response_model=TriggerResponse, status_code=202)
 async def regenerate_videos(
     project_id: uuid.UUID, db: AsyncSession = Depends(get_db),
 ):
@@ -144,7 +143,7 @@ async def _wipe_action_stills_for_regen(project_id: uuid.UUID, db: AsyncSession)
     return deleted
 
 
-@router.post("/projects/{project_id}/regenerate-images", response_model=TriggerResponse)
+@router.post("/projects/{project_id}/regenerate-images", response_model=TriggerResponse, status_code=202)
 async def regenerate_images(
     project_id: uuid.UUID, db: AsyncSession = Depends(get_db),
 ):
@@ -157,7 +156,7 @@ async def regenerate_images(
     )
 
 
-@router.post("/projects/{project_id}/generate-all", response_model=TriggerResponse)
+@router.post("/projects/{project_id}/generate-all", response_model=TriggerResponse, status_code=202)
 async def generate_all(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     """Run the full pipeline. 409 if any project (including this one) is mid-pipeline."""
     await get_project(project_id, db)
@@ -198,7 +197,7 @@ async def generate_all(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)
     )
 
 
-@router.post("/scenes/{scene_id}/regenerate", response_model=TriggerResponse)
+@router.post("/scenes/{scene_id}/regenerate", response_model=TriggerResponse, status_code=202)
 async def regenerate_scene(scene_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     """Regenerate a single scene's video.
 

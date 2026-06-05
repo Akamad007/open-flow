@@ -9,12 +9,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
+from app.models.project import Project
 from app.models.scene import Scene
 from app.models.scene_prompt import ScenePrompt
+from app.orchestration.episode_helpers import resolve_active_episode
 from app.schemas.scene import SceneCreate, SceneRead, SceneReorder, SceneUpdate
 from app.schemas.scene_prompt import ScenePromptUpdate
 
 router = APIRouter(tags=["scenes"])
+
+
+async def _load_scene(db: AsyncSession, scene_id: uuid.UUID) -> Scene | None:
+    """Fetch a scene with the relations SceneRead needs."""
+    result = await db.execute(
+        select(Scene)
+        .where(Scene.id == scene_id)
+        .options(selectinload(Scene.prompt), selectinload(Scene.characters))
+    )
+    return result.scalar_one_or_none()
 
 
 @router.get("/projects/{project_id}/scenes", response_model=List[SceneRead])
@@ -29,6 +41,24 @@ async def list_scenes(project_id: uuid.UUID, db: AsyncSession = Depends(get_db))
     result = await db.execute(stmt)
     scenes = result.scalars().all()
     return [SceneRead.model_validate(s) for s in scenes]
+
+
+@router.post("/projects/{project_id}/scenes", response_model=SceneRead, status_code=201)
+async def create_scene(
+    project_id: uuid.UUID,
+    data: SceneCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a scene in the project's active episode."""
+    if not await db.get(Project, project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+    episode = await resolve_active_episode(db, str(project_id))
+    if episode is None:
+        raise HTTPException(status_code=400, detail="Project has no active episode to add a scene to")
+    scene = Scene(project_id=project_id, episode_id=episode.id, **data.model_dump())
+    db.add(scene)
+    await db.flush()
+    return SceneRead.model_validate(await _load_scene(db, scene.id))
 
 
 @router.get("/scenes/{scene_id}", response_model=SceneRead)
@@ -72,6 +102,15 @@ async def update_scene(
     return SceneRead.model_validate(scene)
 
 
+@router.delete("/scenes/{scene_id}", status_code=204)
+async def delete_scene(scene_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """Delete a scene."""
+    scene = await db.get(Scene, scene_id)
+    if not scene:
+        raise HTTPException(status_code=404, detail="Scene not found")
+    await db.delete(scene)
+
+
 @router.put("/scenes/{scene_id}/prompt", response_model=SceneRead)
 async def update_scene_prompt(
     scene_id: uuid.UUID,
@@ -102,7 +141,7 @@ async def update_scene_prompt(
     return SceneRead.model_validate(scene)
 
 
-@router.post("/projects/{project_id}/scenes/reorder", response_model=List[SceneRead])
+@router.post("/projects/{project_id}/scenes/reorder", response_model=List[SceneRead], status_code=200)
 async def reorder_scenes(
     project_id: uuid.UUID,
     data: SceneReorder,

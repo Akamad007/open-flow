@@ -8,13 +8,30 @@ from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.models.character import Character
 from app.models.episode import Episode, EpisodeStatus
+from app.models.location import Location
 from app.models.project import Project, ProjectStatus
 from app.models.scene import Scene
 from app.orchestration.profiles import DEFAULT_PROFILE, PROFILES, list_profiles
 from app.schemas.project import ProjectCreate, ProjectList, ProjectRead, ProjectUpdate
 
 router = APIRouter(tags=["projects"])
+
+
+async def _project_read_with_counts(project: Project, db: AsyncSession) -> ProjectRead:
+    """Serialize a project with its scene/character/location counts populated."""
+    result = ProjectRead.model_validate(project)
+    result.scene_count = await db.scalar(
+        select(func.count(Scene.id)).where(Scene.project_id == project.id)
+    ) or 0
+    result.character_count = await db.scalar(
+        select(func.count(Character.id)).where(Character.project_id == project.id)
+    ) or 0
+    result.location_count = await db.scalar(
+        select(func.count(Location.id)).where(Location.project_id == project.id)
+    ) or 0
+    return result
 
 
 @router.get("/pipelines")
@@ -142,14 +159,7 @@ async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db))
     project = await db.get(Project, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-
-    # Get counts
-    scene_count = await db.scalar(
-        select(func.count(Scene.id)).where(Scene.project_id == project_id)
-    )
-    result = ProjectRead.model_validate(project)
-    result.scene_count = scene_count or 0
-    return result
+    return await _project_read_with_counts(project, db)
 
 
 @router.put("/projects/{project_id}", response_model=ProjectRead)
@@ -175,7 +185,7 @@ async def update_project(
 
     await db.flush()
     await db.refresh(project)
-    return ProjectRead.model_validate(project)
+    return await _project_read_with_counts(project, db)
 
 
 @router.delete("/projects/{project_id}", status_code=204)
