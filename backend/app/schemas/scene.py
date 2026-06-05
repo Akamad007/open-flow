@@ -13,7 +13,8 @@ from app.schemas.scene_prompt import ScenePromptRead
 
 
 class SceneCreate(BaseModel):
-    order_index: int = 0
+    episode_id: Optional[uuid.UUID] = None  # defaults to the project's active episode
+    order_index: int = 0  # ignored — new scenes are appended to the end of the episode
     source_excerpt: Optional[str] = None
     duration_seconds: float = 4.0
     scene_purpose: Optional[str] = None

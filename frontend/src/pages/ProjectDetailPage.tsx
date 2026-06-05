@@ -13,6 +13,7 @@ import { CriticReviewSummary, SceneCriticIssues } from '../components/CriticIssu
 import { StillCriticAll, StillCriticForScene } from '../components/StillCriticVerdicts'
 import { UploadsManager } from '../components/UploadsManager'
 import { EpisodesPanel } from '../components/EpisodesPanel'
+import { AddSceneModal } from '../components/AddSceneModal'
 import type { Project, Scene, Character, Location, AudioPlan, Asset, RenderJob, ProjectImages, EpisodeListItem } from '../types'
 
 type Tab = 'story' | 'scenes' | 'audio' | 'characters' | 'locations' | 'assets' | 'jobs' | 'logs' | 'eval' | 'render' | 'images' | 'uploads'
@@ -57,6 +58,7 @@ export function ProjectDetailPage() {
   }, [setSearchParams])
   const [projectImages, setProjectImages] = useState<ProjectImages | null>(null)
   const [selectedScene, setSelectedScene] = useState<Scene | null>(null)
+  const [showAddScene, setShowAddScene] = useState(false)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState('')
   const [storyText, setStoryText] = useState('')
@@ -376,10 +378,18 @@ export function ProjectDetailPage() {
             />
           </div>
           {scenes.length === 0 ? (
-            <div className="empty-state"><h3>No scenes yet</h3><p>Run "Plan Scenes" to generate scene breakdowns.</p></div>
+            <div className="empty-state">
+              <h3>No scenes yet</h3>
+              <p>Run "Plan Scenes" to generate scene breakdowns, or add one manually.</p>
+              <button className="btn btn-primary btn-sm" onClick={() => setShowAddScene(true)}>➕ Add Scene</button>
+            </div>
           ) : (
             <>
               <div className="section-actions">
+                <button className="btn btn-primary btn-sm" disabled={!!actionLoading}
+                  onClick={() => setShowAddScene(true)}>
+                  ➕ Add Scene
+                </button>
                 <button className="btn btn-secondary btn-sm" disabled={!!actionLoading}
                   onClick={() => runAction('prompts', () => api.generatePrompts(projectId!))}>
                   {actionLoading === 'prompts' ? '⏳ Running...' : '🎨 Regenerate All Prompts'}
@@ -843,6 +853,19 @@ export function ProjectDetailPage() {
       )}
 
       {/* Scene Detail Drawer */}
+      {showAddScene && (
+        <AddSceneModal
+          projectId={projectId!}
+          episodeId={selectedEpisodeId}
+          onClose={() => setShowAddScene(false)}
+          onCreated={(scene) => {
+            setShowAddScene(false)
+            toast('✅ Scene added')
+            setSelectedScene(scene)
+            load()
+          }}
+        />
+      )}
       {selectedScene && (
         <>
           <div className="drawer-overlay" onClick={() => setSelectedScene(null)} />
