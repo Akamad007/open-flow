@@ -3,6 +3,22 @@
 > **Verification note (added by maintainer pass):** An automated auditor in the source workflow incorrectly reported `.env` as committed. This was **independently disproven** — `.env` is correctly gitignored and was **never** committed (checked via `git ls-files`, full-history `--diff-filter=A`, `git check-ignore`, and `git cat-file -e HEAD:.env`). The git history (3 commits) is **clean of secrets**: no API keys, tokens, private keys, or passwords in any tracked file or commit. The only real secret (`SECRETS_MANAGER_TOKEN`) lives solely in the untracked on-disk `.env` and is redacted from this document. Findings that assumed a committed secret are corrected inline and downgraded.
 
 ---
+
+> **Implementation status (branch `oss-readiness`):** Phases 0–4 of the execution
+> plan below have been implemented as five commits. **Done:** LICENSE + governance
+> files, rebrand to **OpenFlow**, repo de-bloat (untracked, kept on disk),
+> env-driven config (no `/home/akash` in runtime code), optional API-key auth +
+> readiness probe, `.env.example`/`.env.stub`, model-download script + docs,
+> Docker/secrets decoupling, full doc set, `.github/` CI + templates + Dependabot,
+> pyproject + lint/type/test tooling (CI green: 296 passed / 2 xfailed).
+> **Deferred (intentionally, noted inline):** git-history rewrite to shrink `.git`
+> (would delete working-tree media; no secrets in history); renaming infra
+> identifiers (`storyvideo` DB/role + Celery task names) — left until the live
+> render finishes; large refactors (split `visual_director.py`/`prompts.py`,
+> decompose `ProjectDetailPage.tsx`); SPDX headers; real frontend component tests;
+> rotating the on-disk token. See the per-item severities below.
+
+---
 _Repo: `/home/akash/PycharmProjects/video-app` — GPU AI story-to-video generation app (Python/FastAPI/Celery backend + React/Vite frontend)._
 
 ## Executive summary
