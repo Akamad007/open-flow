@@ -37,8 +37,8 @@ def _gpu_python() -> str:
 
 logger = logging.getLogger(__name__)
 
-INSTANTID_SCRIPT = Path.home() / "instantid" / "generate_instantid.py"
-INSTANTID_POSE_SCRIPT = Path.home() / "instantid" / "generate_instantid_pose.py"
+INSTANTID_SCRIPT = Path(cfg.instantid_dir) / "generate_instantid.py"
+INSTANTID_POSE_SCRIPT = Path(cfg.instantid_dir) / "generate_instantid_pose.py"
 
 
 class InstantIDImageProvider(ImageProvider):

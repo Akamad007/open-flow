@@ -105,7 +105,7 @@ def get_identity_image_provider():
     if not settings.identity_provider_enabled:
         return base
     from pathlib import Path
-    instantid_dir = Path.home() / "instantid"
+    instantid_dir = Path(settings.instantid_dir)
     # Either script being present is enough — the provider picks dual-CN
     # vs face-only at call time based on whether a pose ref was provided.
     if not (instantid_dir / "generate_instantid.py").exists() and not (

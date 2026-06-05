@@ -25,9 +25,11 @@ import threading
 from pathlib import Path
 from typing import Optional
 
+from app.config import settings
+
 logger = logging.getLogger(__name__)
 
-_DAEMON_SCRIPT = Path.home() / "instantid" / "instantid_daemon.py"
+_DAEMON_SCRIPT = Path(settings.instantid_dir) / "instantid_daemon.py"
 
 
 def _kill_orphan_daemons() -> None:

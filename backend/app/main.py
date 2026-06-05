@@ -6,11 +6,13 @@ import logging
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
+from app.security import require_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +31,7 @@ app = FastAPI(
     description="OpenFlow — multi-agent system for converting stories into cinematic videos",
     version="0.1.0",
     lifespan=lifespan,
+    dependencies=[Depends(require_api_key)],  # no-op unless API_KEY is set
 )
 
 # CORS
@@ -77,4 +80,38 @@ app.mount("/storage", StaticFiles(directory=str(settings.storage_root)), name="s
 
 @app.get("/api/health")
 async def health_check():
+    """Liveness: process is up. Cheap, never touches dependencies."""
     return {"status": "ok", "version": "0.1.0"}
+
+
+@app.get("/api/readiness")
+async def readiness_check():
+    """Readiness: verify DB and Redis are reachable. Returns 503 if degraded."""
+    checks: dict[str, str] = {}
+
+    try:
+        from sqlalchemy import text
+
+        from app.database import async_session_factory
+
+        async with async_session_factory() as session:
+            await session.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception as exc:  # noqa: BLE001
+        checks["database"] = f"error: {type(exc).__name__}"
+
+    try:
+        import redis.asyncio as aioredis
+
+        client = aioredis.from_url(settings.redis_url)
+        await client.ping()
+        await client.aclose()
+        checks["redis"] = "ok"
+    except Exception as exc:  # noqa: BLE001
+        checks["redis"] = f"error: {type(exc).__name__}"
+
+    ready = all(v == "ok" for v in checks.values())
+    return JSONResponse(
+        status_code=200 if ready else 503,
+        content={"status": "ready" if ready else "degraded", "checks": checks},
+    )

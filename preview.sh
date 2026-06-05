@@ -13,7 +13,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-PYTHON="/home/akash/.pyenv/versions/video-app/bin/python"
+PYTHON="${PYTHON_BIN:-$ROOT/backend/.venv/bin/python}"
+[ -x "$PYTHON" ] || PYTHON="$(command -v python3)"
 KEEP_ENV=0
 [[ "${1:-}" == "--keep-env" ]] && KEEP_ENV=1
 
