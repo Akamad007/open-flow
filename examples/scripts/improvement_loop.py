@@ -152,7 +152,7 @@ def _restart_celery() -> None:
 # if the fix is not applicable (so we move on to the next candidate).
 
 CONFIG_PY = ROOT / "backend" / "app" / "config.py"
-LTX_GENERATE = ROOT / "ltx_generate.py"
+LTX_GENERATE = ROOT / "engines" / "ltx_generate.py"
 VISUAL_DIRECTOR = ROOT / "backend" / "app" / "prompts" / "visual_director.txt"
 LTX_PROVIDER = ROOT / "backend" / "app" / "providers" / "video" / "ltx_provider.py"
 

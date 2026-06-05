@@ -13,7 +13,7 @@ environment and/or a `.env` file. Variable names are case-insensitive. Start fro
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis |
 | `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND` | redis db 0 / 1 | Celery |
 | `STORAGE_ROOT` | `<backend>/storage` | Generated assets root |
-| `BACKEND_HOST` / `BACKEND_PORT` | `0.0.0.0` / `8000` | Uvicorn bind (`start_all.sh` uses 8002) |
+| `BACKEND_HOST` / `BACKEND_PORT` | `0.0.0.0` / `8000` | Uvicorn bind (`scripts/start_all.sh` uses 8002) |
 | `CORS_ORIGINS` | `["http://localhost:5173"]` | Allowed origins (JSON list) |
 
 ## Security

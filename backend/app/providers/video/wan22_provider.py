@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 _REPO_ROOT = Path(__file__).parent.parent.parent.parent.parent
 _CATALOG_PATH = Path(__file__).parent.parent.parent / "config" / "wan22_lora_catalog.yaml"
-_SCRIPT_PATH = _REPO_ROOT / "wan22_generate.py"
+_SCRIPT_PATH = _REPO_ROOT / "engines" / "wan22_generate.py"
 _FACE_RESTORE_SCRIPT = _REPO_ROOT / "scripts" / "wan22_face_restore_codeformer.py"
 
 # Motion-heavy scene types — character locomotion or large body motion. These

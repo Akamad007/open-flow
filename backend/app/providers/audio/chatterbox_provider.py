@@ -28,7 +28,7 @@ class ChatterboxAudioProvider(AudioProvider):
     """
 
     def __init__(self):
-        self._script_path = Path(__file__).parent.parent.parent.parent.parent / "chatterbox_generate.py"
+        self._script_path = Path(__file__).parent.parent.parent.parent.parent / "engines" / "chatterbox_generate.py"
         self._reference_path = settings.chatterbox_reference_audio
         self._active_jobs: dict[str, asyncio.subprocess.Process] = {}
 
@@ -69,11 +69,13 @@ class ChatterboxAudioProvider(AudioProvider):
         import os
         env = {**os.environ}
 
-        # Pin Chatterbox to the smaller (non-largest) GPU so it doesn't
-        # compete for VRAM with Wan22 video gen on the big card.
-        gpu_idx = non_largest_gpu_index()
+        # Pin Chatterbox to this worker's assigned GPU (AUDIO_GPU_INDEX, set
+        # per-card in multi-GPU mode) so a project's audio lands on the same
+        # card as its video; else the non-largest card to dodge Wan22 VRAM.
+        override = os.environ.get("AUDIO_GPU_INDEX")
+        gpu_idx = int(override) if override is not None else non_largest_gpu_index()
         apply_gpu_env(env, gpu_idx)
-        logger.info("Chatterbox → GPU %d (non-largest)", gpu_idx)
+        logger.info("Chatterbox → GPU %d", gpu_idx)
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,

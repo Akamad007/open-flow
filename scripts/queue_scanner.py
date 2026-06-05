@@ -7,7 +7,7 @@ Runs `scan_and_dispatch()` every SCAN_INTERVAL_S seconds:
 This decouples scanning from the GPU-bound celery worker so the scan
 keeps firing even while a 40-min Phantom-Wan scene is running.
 
-Run via start_all.sh; logs to /tmp/queue_scanner.log.
+Run via scripts/start_all.sh; logs to /tmp/queue_scanner.log.
 """
 from __future__ import annotations
 

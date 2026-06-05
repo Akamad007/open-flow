@@ -43,7 +43,7 @@ class AssetOrchestrator:
 
     async def _extract_last_frame(self, video_path: str, frame_path: str) -> bool:
         """Extract the last frame of a video using ltx_generate.py --extract-last-frame."""
-        script_path = Path(__file__).parent.parent.parent.parent / "ltx_generate.py"
+        script_path = Path(__file__).parent.parent.parent.parent / "engines" / "ltx_generate.py"
         cmd = [
             settings.gpu_python_path, str(script_path),
             "--extract-last-frame", video_path,

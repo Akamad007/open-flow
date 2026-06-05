@@ -9,9 +9,9 @@
 # Each service writes to /tmp/<service>.log. Idempotent: kills the
 # matching process before relaunching. Redis is assumed up on :6379.
 #
-# Usage:  ./start_all.sh
-#         ./start_all.sh stop      (kill all four)
-#         ./start_all.sh status    (one line per service)
+# Usage:  ./scripts/start_all.sh
+#         ./scripts/start_all.sh stop      (kill all four)
+#         ./scripts/start_all.sh status    (one line per service)
 
 set -u
 
@@ -58,21 +58,30 @@ start_celery() {
     "$PY_APP" -c "import redis; redis.from_url('redis://localhost:6379/0').flushdb()" 2>/dev/null || true
     cd "$REPO/backend"
     # Truncate so "celery ready" checks match THIS run, not a previous one.
-    : > "$REPO/backend/celery.log"
     : > "$REPO/backend/celery-cpu.log"
 
-    # GPU worker: video gen, image pre-gen, audio gen, stitching. concurrency=1
-    # to keep the single-GPU pipeline strict.
-    setsid nohup env PYTHONPATH=. \
-        PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
-        CUDA_DEVICE_ORDER=PCI_BUS_ID \
-        "$PY_APP" -m celery -A celery_worker worker \
-            --hostname=gpu@%h --queues=gpu --concurrency=1 \
-            --loglevel=info \
-        >> "$REPO/backend/celery.log" 2>&1 < /dev/null &
-    disown
-    until tail -200 "$REPO/backend/celery.log" 2>/dev/null | grep -qE "gpu@[^ ]+ ready"; do sleep 1; done
-    echo "✓ celery gpu worker  (log: backend/celery.log)"
+    # One GPU worker per physical card, pinned via *_GPU_INDEX env and serving
+    # its own `gpu{i}` queue. Per-project routing (app.utils.gpu_routing) sends
+    # each project's GPU tasks to its assigned card, so N projects render in
+    # parallel. gpu0 also drains the legacy `gpu` queue. concurrency=1 keeps
+    # each card strictly one task at a time.
+    NGPU=$(nvidia-smi -L 2>/dev/null | grep -c '^GPU ') || NGPU=0
+    [ "$NGPU" -ge 1 ] || NGPU=1
+    for i in $(seq 0 $((NGPU - 1))); do
+        QUEUES="gpu$i"; [ "$i" -eq 0 ] && QUEUES="gpu0,gpu"
+        LOG="$REPO/backend/celery-gpu$i.log"; : > "$LOG"
+        setsid nohup env PYTHONPATH=. \
+            PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
+            CUDA_DEVICE_ORDER=PCI_BUS_ID \
+            WAN22_GPU_INDEX=$i IMAGE_GEN_GPU_INDEX=$i AUDIO_GPU_INDEX=$i \
+            "$PY_APP" -m celery -A celery_worker worker \
+                --hostname=gpu$i@%h --queues="$QUEUES" --concurrency=1 \
+                --loglevel=info \
+            >> "$LOG" 2>&1 < /dev/null &
+        disown
+        until tail -200 "$LOG" 2>/dev/null | grep -qE "gpu$i@[^ ]+ ready"; do sleep 1; done
+        echo "✓ celery gpu$i worker  (card $i, queues=$QUEUES)"
+    done
 
     # CPU worker: story analysis, scene planning, prompt gen, audio plan,
     # consistency review, eval, cleanup. Runs in parallel with the GPU worker
@@ -145,7 +154,7 @@ case "${1:-start}" in
         echo ""
         echo "All services up. Logs:"
         echo "  /tmp/secrets_manager.log         /tmp/backend_uvicorn.log"
-        echo "  $REPO/backend/celery.log   /tmp/frontend_vite.log"
+        echo "  $REPO/backend/celery-gpu*.log   $REPO/backend/celery-cpu.log   /tmp/frontend_vite.log"
         echo "  /tmp/queue_scanner.log"
         ;;
 esac

@@ -17,7 +17,7 @@ import tempfile
 from pathlib import Path
 
 PY = "/home/akash/.pyenv/versions/video-app/bin/python"
-WAN = "/home/akash/PycharmProjects/video-app/wan22_generate.py"
+WAN = "/home/akash/PycharmProjects/video-app/engines/wan22_generate.py"
 OUT = Path("/tmp/test_bag")
 COMPOSITE = OUT / "composite.png"
 
