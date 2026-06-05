@@ -84,7 +84,7 @@ async def test_analyze_creates_running_job(client, db_session, fake_celery_id):
     project = await _make_project(db_session)
 
     resp = await client.post(f"/api/projects/{project.id}/analyze")
-    assert resp.status_code == 200
+    assert resp.status_code == 202  # async dispatch -> 202 Accepted
     body = resp.json()
     assert body["celery_task_id"] == fake_celery_id
 
@@ -103,7 +103,7 @@ async def test_analyze_returns_409_when_job_already_queued(client, db_session):
     project = await _make_project(db_session)
 
     resp1 = await client.post(f"/api/projects/{project.id}/analyze")
-    assert resp1.status_code == 200
+    assert resp1.status_code == 202
 
     resp2 = await client.post(f"/api/projects/{project.id}/analyze")
     assert resp2.status_code == 409
@@ -130,7 +130,7 @@ async def test_generate_all_blocks_when_another_project_running(client, db_sessi
 async def test_generate_all_succeeds_when_no_other_project_active(client, db_session):
     project = await _make_project(db_session)
     resp = await client.post(f"/api/projects/{project.id}/generate-all")
-    assert resp.status_code == 200
+    assert resp.status_code == 202  # async dispatch -> 202 Accepted
     assert resp.json()["message"] == "Full pipeline workflow dispatched"
 
     from sqlalchemy import select

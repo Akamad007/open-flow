@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.location import Location
-from app.schemas.location import LocationRead, LocationUpdate
+from app.models.project import Project
+from app.schemas.location import LocationCreate, LocationRead, LocationUpdate
 
 router = APIRouter(tags=["locations"])
 
@@ -19,6 +20,22 @@ async def list_locations(project_id: uuid.UUID, db: AsyncSession = Depends(get_d
     stmt = select(Location).where(Location.project_id == project_id).order_by(Location.name)
     result = await db.execute(stmt)
     return [LocationRead.model_validate(loc) for loc in result.scalars().all()]
+
+
+@router.post("/projects/{project_id}/locations", response_model=LocationRead, status_code=201)
+async def create_location(
+    project_id: uuid.UUID,
+    data: LocationCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a location in a project."""
+    if not await db.get(Project, project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+    location = Location(project_id=project_id, **data.model_dump())
+    db.add(location)
+    await db.flush()
+    await db.refresh(location)
+    return LocationRead.model_validate(location)
 
 
 @router.get("/locations/{location_id}", response_model=LocationRead)
@@ -45,3 +62,12 @@ async def update_location(
     await db.flush()
     await db.refresh(location)
     return LocationRead.model_validate(location)
+
+
+@router.delete("/locations/{location_id}", status_code=204)
+async def delete_location(location_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """Delete a location."""
+    location = await db.get(Location, location_id)
+    if not location:
+        raise HTTPException(status_code=404, detail="Location not found")
+    await db.delete(location)

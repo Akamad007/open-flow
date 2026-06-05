@@ -27,7 +27,7 @@ from app.orchestration.tasks import (
 router = APIRouter(tags=["generate"])
 
 
-@router.post("/projects/{project_id}/analyze", response_model=TriggerResponse)
+@router.post("/projects/{project_id}/analyze", response_model=TriggerResponse, status_code=202)
 async def analyze_story(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     await get_project(project_id, db)
     return await create_job_and_dispatch(
@@ -35,7 +35,7 @@ async def analyze_story(project_id: uuid.UUID, db: AsyncSession = Depends(get_db
     )
 
 
-@router.post("/projects/{project_id}/plan-scenes", response_model=TriggerResponse)
+@router.post("/projects/{project_id}/plan-scenes", response_model=TriggerResponse, status_code=202)
 async def plan_scenes(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     await get_project(project_id, db)
     return await create_job_and_dispatch(
@@ -43,7 +43,7 @@ async def plan_scenes(project_id: uuid.UUID, db: AsyncSession = Depends(get_db))
     )
 
 
-@router.post("/projects/{project_id}/generate-prompts", response_model=TriggerResponse)
+@router.post("/projects/{project_id}/generate-prompts", response_model=TriggerResponse, status_code=202)
 async def generate_prompts(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     await get_project(project_id, db)
     return await create_job_and_dispatch(
@@ -51,7 +51,7 @@ async def generate_prompts(project_id: uuid.UUID, db: AsyncSession = Depends(get
     )
 
 
-@router.post("/projects/{project_id}/plan-audio", response_model=TriggerResponse)
+@router.post("/projects/{project_id}/plan-audio", response_model=TriggerResponse, status_code=202)
 async def plan_audio(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     await get_project(project_id, db)
     return await create_job_and_dispatch(
@@ -59,7 +59,7 @@ async def plan_audio(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     )
 
 
-@router.post("/projects/{project_id}/review", response_model=TriggerResponse)
+@router.post("/projects/{project_id}/review", response_model=TriggerResponse, status_code=202)
 async def review_consistency(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     await get_project(project_id, db)
     return await create_job_and_dispatch(
@@ -67,7 +67,7 @@ async def review_consistency(project_id: uuid.UUID, db: AsyncSession = Depends(g
     )
 
 
-@router.post("/projects/{project_id}/generate-videos", response_model=TriggerResponse)
+@router.post("/projects/{project_id}/generate-videos", response_model=TriggerResponse, status_code=202)
 async def generate_videos(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     project = await get_project(project_id, db)
     # Rerun rescues failed projects — flip back to generating so scene tasks
@@ -80,7 +80,7 @@ async def generate_videos(project_id: uuid.UUID, db: AsyncSession = Depends(get_
     )
 
 
-@router.post("/projects/{project_id}/generate-audio", response_model=TriggerResponse)
+@router.post("/projects/{project_id}/generate-audio", response_model=TriggerResponse, status_code=202)
 async def generate_audio(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     await get_project(project_id, db)
     return await create_job_and_dispatch(
@@ -88,7 +88,7 @@ async def generate_audio(project_id: uuid.UUID, db: AsyncSession = Depends(get_d
     )
 
 
-@router.post("/projects/{project_id}/stitch", response_model=TriggerResponse)
+@router.post("/projects/{project_id}/stitch", response_model=TriggerResponse, status_code=202)
 async def stitch_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     await get_project(project_id, db)
     return await create_job_and_dispatch(
