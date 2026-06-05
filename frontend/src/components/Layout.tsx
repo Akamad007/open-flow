@@ -11,7 +11,7 @@ export function Layout() {
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <h1>StoryVideo</h1>
+          <h1>OpenFlow</h1>
         </div>
         <nav>
           {navItems.map(item => (
