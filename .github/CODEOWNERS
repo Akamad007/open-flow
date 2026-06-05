@@ -1,0 +1,8 @@
+# Default owner for everything in the repo.
+* @akamad007
+
+# Areas (adjust as the team grows)
+/backend/app/providers/   @akamad007
+/backend/app/orchestration/ @akamad007
+/frontend/                @akamad007
+/.github/                 @akamad007
