@@ -60,6 +60,13 @@ class Scene(Base):
     audio_alignment_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     continuity_from_previous: Mapped[str | None] = mapped_column(Text, nullable=True)
     continuity_to_next: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Explicit continuity predecessor: when set, the render chain seeds this
+    # scene's I2V frame from this scene instead of the character-overlap
+    # heuristic. NULL → auto (current behaviour). Lets non-adjacent threads
+    # (e.g. scene 8 continues scene 3) be declared in the UI.
+    continuity_prev_scene_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("scenes.id", ondelete="SET NULL"), nullable=True
+    )
     target_audio_segment_start: Mapped[float | None] = mapped_column(Float, nullable=True)
     target_audio_segment_end: Mapped[float | None] = mapped_column(Float, nullable=True)
     location_id: Mapped[uuid.UUID | None] = mapped_column(

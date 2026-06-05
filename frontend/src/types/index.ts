@@ -161,6 +161,7 @@ export interface Scene {
   audio_alignment_notes: string | null;
   continuity_from_previous: string | null;
   continuity_to_next: string | null;
+  continuity_prev_scene_id: string | null;
   target_audio_segment_start: number | null;
   target_audio_segment_end: number | null;
   caption: string | null;

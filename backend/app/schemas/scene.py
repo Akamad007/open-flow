@@ -33,6 +33,7 @@ class SceneUpdate(BaseModel):
     audio_alignment_notes: Optional[str] = None
     continuity_from_previous: Optional[str] = None
     continuity_to_next: Optional[str] = None
+    continuity_prev_scene_id: Optional[uuid.UUID] = None
     target_audio_segment_start: Optional[float] = None
     target_audio_segment_end: Optional[float] = None
     caption: Optional[str] = None
@@ -53,6 +54,7 @@ class SceneRead(BaseModel):
     audio_alignment_notes: Optional[str]
     continuity_from_previous: Optional[str]
     continuity_to_next: Optional[str]
+    continuity_prev_scene_id: Optional[uuid.UUID] = None
     target_audio_segment_start: Optional[float]
     target_audio_segment_end: Optional[float]
     caption: Optional[str] = None

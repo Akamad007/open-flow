@@ -14,6 +14,7 @@ import { StillCriticAll, StillCriticForScene } from '../components/StillCriticVe
 import { UploadsManager } from '../components/UploadsManager'
 import { EpisodesPanel } from '../components/EpisodesPanel'
 import { AddSceneModal } from '../components/AddSceneModal'
+import { SceneContinuityEditor } from '../components/SceneContinuityEditor'
 import type { Project, Scene, Character, Location, AudioPlan, Asset, RenderJob, ProjectImages, EpisodeListItem } from '../types'
 
 type Tab = 'story' | 'scenes' | 'audio' | 'characters' | 'locations' | 'assets' | 'jobs' | 'logs' | 'eval' | 'render' | 'images' | 'uploads'
@@ -881,6 +882,12 @@ export function ProjectDetailPage() {
             </div>
 
             <ScenePromptDetail scene={selectedScene} characters={characters} locations={locations}
+              onSaved={async () => {
+                await load()
+                try { setSelectedScene(await api.getScene(selectedScene.id)) } catch { /* drawer closed */ }
+              }} />
+
+            <SceneContinuityEditor scene={selectedScene} scenes={scenes}
               onSaved={async () => {
                 await load()
                 try { setSelectedScene(await api.getScene(selectedScene.id)) } catch { /* drawer closed */ }

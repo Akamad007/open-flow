@@ -130,6 +130,27 @@ async def test_scene_create_foreign_episode_rejected(client, db_session):
     assert r.status_code == 400, r.text
 
 
+async def test_scene_update_sets_continuity_predecessor(client, db_session):
+    p = await _project_with_episode(db_session)
+    a = (await client.post(f"/api/projects/{p.id}/scenes", json={})).json()
+    b = (await client.post(f"/api/projects/{p.id}/scenes", json={})).json()
+
+    r = await client.put(f"/api/scenes/{b['id']}", json={"continuity_prev_scene_id": a["id"]})
+    assert r.status_code == 200, r.text
+    assert r.json()["continuity_prev_scene_id"] == a["id"]
+
+    r = await client.put(f"/api/scenes/{b['id']}", json={"continuity_prev_scene_id": None})
+    assert r.status_code == 200
+    assert r.json()["continuity_prev_scene_id"] is None
+
+
+async def test_scene_cannot_be_its_own_predecessor(client, db_session):
+    p = await _project_with_episode(db_session)
+    a = (await client.post(f"/api/projects/{p.id}/scenes", json={})).json()
+    r = await client.put(f"/api/scenes/{a['id']}", json={"continuity_prev_scene_id": a["id"]})
+    assert r.status_code == 400, r.text
+
+
 @pytest.mark.parametrize("resource", ["characters", "locations", "products", "scenes"])
 async def test_delete_missing_returns_404(client, resource):
     r = await client.delete(f"/api/{resource}/{uuid.uuid4()}")
