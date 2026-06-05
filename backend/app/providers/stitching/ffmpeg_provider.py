@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import os
 import tempfile
 from pathlib import Path
 from typing import Optional
@@ -83,6 +84,9 @@ class FFmpegStitchingProvider(StitchingProvider):
             if audio_path is not None and concat_path.exists() and concat_path != output_path:
                 concat_path.unlink()
 
+            # Step 4: Burn in per-scene captions (no-op if none are set).
+            await self._burn_captions(output_path, sorted_clips, durations, ss)
+
             # Get final duration
             duration = await self._get_duration(output_path)
 
@@ -94,6 +98,7 @@ class FFmpegStitchingProvider(StitchingProvider):
                     "provider": "ffmpeg",
                     "num_clips": len(sorted_clips),
                     "codec": ss.video_codec,
+                    "captions": any((c.caption or "").strip() for c in sorted_clips),
                 },
             )
 
@@ -210,6 +215,79 @@ class FFmpegStitchingProvider(StitchingProvider):
         logger.info("FFmpeg xfade chain: %d clips, %.2fs each → stream_len ≈ %.2fs",
                     len(clip_paths), durations[0], stream_len)
         await self._run_ffmpeg(cmd)
+
+    @staticmethod
+    def _srt_ts(t: float) -> str:
+        """Format seconds as an SRT timestamp HH:MM:SS,mmm."""
+        t = max(0.0, t)
+        h, rem = divmod(int(t), 3600)
+        m, s = divmod(rem, 60)
+        ms = int(round((t - int(t)) * 1000))
+        if ms >= 1000:
+            ms, s = 0, s + 1
+        return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+    @staticmethod
+    def _caption_windows(
+        durations: list[float], apply_xfade: bool, xfade_d: float
+    ) -> list[tuple[float, float]]:
+        """Per-scene [start, end] in the FINAL timeline, mirroring the xfade
+        offset math in `_concatenate_with_xfade` so captions line up with the
+        scene actually on screen."""
+        xd = xfade_d if (apply_xfade and len(durations) > 1) else 0.0
+        offsets, sl = [], 0.0
+        for k, d in enumerate(durations):
+            if k == 0:
+                offsets.append(0.0); sl = d
+            else:
+                offsets.append(sl - xd); sl += d - xd
+        return [
+            (offsets[k], offsets[k + 1] if k + 1 < len(durations) else sl)
+            for k in range(len(durations))
+        ]
+
+    async def _burn_captions(
+        self, output_path: Path, sorted_clips: list[SceneClip],
+        durations: list[float], ss: StitchSettings,
+    ) -> None:
+        """Burn per-scene captions onto the finished video via an SRT + the
+        libass `subtitles` filter. No-op when no clip carries a caption."""
+        captions = [(c.caption or "").strip() for c in sorted_clips]
+        if not any(captions):
+            return
+        windows = self._caption_windows(durations, ss.apply_crossfades, ss.crossfade_duration)
+        cues, idx = [], 1
+        for (start, end), text in zip(windows, captions):
+            if not text:
+                continue
+            s = start + 0.15
+            e = max(s + 0.6, end - 0.15)
+            cues.append(f"{idx}\n{self._srt_ts(s)} --> {self._srt_ts(e)}\n{text}\n")
+            idx += 1
+        srt = output_path.parent / f"{output_path.stem}_captions.srt"
+        srt.write_text("\n".join(cues), encoding="utf-8")
+        tmp = output_path.parent / f"{output_path.stem}_capped.mp4"
+        style = ("FontName=DejaVu Sans,FontSize=16,PrimaryColour=&H00FFFFFF,"
+                 "OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,"
+                 "Alignment=2,MarginV=28")
+        vf = f"subtitles='{srt}':force_style='{style}'"
+        cmd = [
+            settings.ffmpeg_path, "-y", "-i", str(output_path),
+            "-vf", vf, "-c:v", ss.video_codec, "-crf", str(ss.crf),
+            "-preset", ss.preset, "-pix_fmt", "yuv420p", "-c:a", "copy",
+            str(tmp),
+        ]
+        try:
+            await self._run_ffmpeg(cmd)
+            os.replace(tmp, output_path)
+            logger.info("Burned %d captions into %s", idx - 1, output_path.name)
+        finally:
+            for p in (srt, tmp):
+                if p.exists():
+                    try:
+                        p.unlink()
+                    except OSError:
+                        pass
 
     async def _overlay_audio(
         self, video_path: Path, audio_path: Path, output: Path, ss: StitchSettings

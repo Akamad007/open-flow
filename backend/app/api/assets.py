@@ -57,7 +57,12 @@ async def _serve(asset_id: uuid.UUID, db: AsyncSession) -> FileResponse:
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Asset file missing from disk")
     media_type = _MEDIA_TYPES.get(file_path.suffix.lower(), "application/octet-stream")
-    return FileResponse(file_path, media_type=media_type, filename=file_path.name)
+    # Renders are re-burned in place (same filename) when captions change, so tell
+    # the browser to revalidate instead of serving a stale cached video.
+    return FileResponse(
+        file_path, media_type=media_type, filename=file_path.name,
+        headers={"Cache-Control": "no-cache, must-revalidate"},
+    )
 
 
 @router.get("/assets/{asset_id}/file")

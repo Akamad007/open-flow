@@ -34,6 +34,7 @@ class SceneUpdate(BaseModel):
     continuity_to_next: Optional[str] = None
     target_audio_segment_start: Optional[float] = None
     target_audio_segment_end: Optional[float] = None
+    caption: Optional[str] = None
     status: Optional[SceneStatus] = None
     locked: Optional[bool] = None
     location_id: Optional[uuid.UUID] = None
@@ -53,6 +54,7 @@ class SceneRead(BaseModel):
     continuity_to_next: Optional[str]
     target_audio_segment_start: Optional[float]
     target_audio_segment_end: Optional[float]
+    caption: Optional[str] = None
     location_id: Optional[uuid.UUID]
     status: SceneStatus
     locked: bool

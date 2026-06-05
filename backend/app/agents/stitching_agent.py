@@ -66,6 +66,7 @@ class StitchingAgent:
                 file_path=Path(video_asset.file_path),
                 order_index=scene.order_index,
                 target_duration=scene.duration_seconds,
+                caption=scene.caption,
             ))
 
         if not scene_clips:

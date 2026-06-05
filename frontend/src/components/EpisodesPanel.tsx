@@ -19,6 +19,11 @@ const assetUrl = (asset: Asset) => {
   return name ? `/api/assets/${asset.id}/file/${name}` : `/api/assets/${asset.id}/file`
 }
 
+// The burned-in caption track is saved as a .srt sidecar next to the render and
+// served via the /storage static mount.
+const captionSrtUrl = (asset: Asset) =>
+  '/' + (asset.file_path || '').replace(/_captioned\.mp4$/, '_captions.srt')
+
 export function EpisodesPanel({ projectId, selectedEpisodeId, onSelect, onCreated, onDeleted }: Props) {
   const [episodes, setEpisodes] = useState<EpisodeListItem[]>([])
   const [assets, setAssets] = useState<Asset[]>([])
@@ -193,6 +198,9 @@ export function EpisodesPanel({ projectId, selectedEpisodeId, onSelect, onCreate
                       <source src={assetUrl(finalAsset)} type="video/mp4" />
                     </video>
                     <a href={assetUrl(finalAsset)} download className="btn btn-sm">⬇ Download</a>
+                    {finalAsset.file_path?.includes('_captioned') && (
+                      <a href={captionSrtUrl(finalAsset)} download className="btn btn-sm">⬇ Captions (.srt)</a>
+                    )}
                     {attaching === ep.id && (
                       <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>
                         🎵 Downloading YouTube audio and overlaying… don't close the tab.
