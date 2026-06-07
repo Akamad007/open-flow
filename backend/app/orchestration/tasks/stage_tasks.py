@@ -169,46 +169,26 @@ def task_stitch(self, project_id: str):
             _retry_async(self, "stitch", exc, 10)
 
 
-async def _redo_all_prompts(project_id: str) -> dict:
-    """Run analysis → planning → prompts for EVERY episode, no rendering.
-    Per-episode try/except so one bad episode doesn't abort the batch."""
-    import uuid as _uuid
-
-    from sqlalchemy import select
-
-    from app.database import async_session_factory
-    from app.models.episode import Episode
-    from app.models.project import Project, ProjectStatus
+async def _episode_prompts(project_id: str, episode_id: str) -> None:
+    """analysis → planning → prompts for ONE episode, no rendering."""
     from app.orchestration.stages import (
         prompt_generation, scene_planning, story_analysis,
     )
+    await story_analysis.run(project_id, episode_id=episode_id)
+    await scene_planning.run(project_id, episode_id=episode_id)
+    await prompt_generation.run(project_id, episode_id=episode_id)
 
-    async with async_session_factory() as db:
-        project = await db.get(Project, _uuid.UUID(project_id))
-        project.status = ProjectStatus.analyzing  # keep stages from short-circuiting
-        ep_ids = [str(e.id) for e in (await db.execute(
-            select(Episode).where(Episode.project_id == project.id)
-            .order_by(Episode.order_index)
-        )).scalars().all()]
-        await db.commit()
 
-    done, failed = 0, []
-    for eid in ep_ids:
+@celery_app.task(name="storyvideo.episode_prompts", bind=True, max_retries=2,
+                 default_retry_delay=20)
+def task_episode_prompts(self, project_id: str, episode_id: str):
+    """Redo prompts for a SINGLE episode (no render). One short, lock-protected
+    message per episode — never long enough for the broker to redeliver, and a
+    per-(project,episode) stage lock blocks any duplicate processing the same one."""
+    with stage_lock(project_id, f"episode_prompts:{episode_id}", self.request.id):
         try:
-            await story_analysis.run(project_id, episode_id=eid)
-            await scene_planning.run(project_id, episode_id=eid)
-            await prompt_generation.run(project_id, episode_id=eid)
-            done += 1
+            run_async(_episode_prompts(project_id, episode_id))
+        except Ignore:
+            raise
         except Exception as exc:
-            logger.exception("redo_all_prompts: episode %s failed: %s", eid, exc)
-            failed.append(eid)
-        logger.info("redo_all_prompts: %d/%d done (%d failed)", done, len(ep_ids), len(failed))
-    return {"prompted": done, "failed": failed}
-
-
-@celery_app.task(name="storyvideo.redo_all_prompts", bind=True, max_retries=0)
-def task_redo_all_prompts(self, project_id: str):
-    with stage_lock(project_id, "redo_all_prompts", self.request.id):
-        result = run_async(_redo_all_prompts(project_id))
-        logger.info("redo_all_prompts complete for %s: %s", project_id, result)
-        return result
+            _retry_async(self, "episode_prompts", exc, 20)

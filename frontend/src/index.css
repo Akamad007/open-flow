@@ -46,6 +46,13 @@
   --transition-fast: 150ms ease;
   --transition-base: 250ms ease;
   --transition-slow: 400ms ease;
+
+  /* Aliases for the episode/panel/modal CSS which uses short var names */
+  --card-bg: var(--bg-surface);
+  --border:  var(--border-default);
+  --muted:   var(--text-secondary);
+  --accent:  var(--accent-blue);
+  --text:    var(--text-primary);
 }
 
 /* ── Reset ── */

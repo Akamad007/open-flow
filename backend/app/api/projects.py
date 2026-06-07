@@ -196,15 +196,64 @@ async def reset_project(
     return await _project_read_with_counts(project, db)
 
 
+@router.post("/projects/{project_id}/clear-renders")
+async def clear_renders(
+    project_id: uuid.UUID, scene_videos: bool = False,
+    db: AsyncSession = Depends(get_db),
+):
+    """Soft-delete the project's rendered videos so a re-render starts clean.
+    Files are MOVED ASIDE (renamed to <name>.superseded-<id>, fully recoverable —
+    never destroyed), the asset is marked failed, and episode.final_video_path is
+    cleared. Pass scene_videos=true to also move aside per-scene clips."""
+    from pathlib import Path
+
+    from app.models.asset import Asset, AssetStatus, AssetType
+
+    await get_or_404(db, Project, project_id, "Project")
+    types = [AssetType.final_render]
+    if scene_videos:
+        types.append(AssetType.scene_video)
+    assets = (await db.execute(
+        select(Asset).where(Asset.project_id == project_id,
+                            Asset.asset_type.in_(types))
+    )).scalars().all()
+    moved = 0
+    for a in assets:
+        if a.file_path:
+            p = Path(a.file_path)
+            if p.exists() and not p.name.endswith(f".superseded-{a.id}"):
+                dest = p.with_name(f"{p.name}.superseded-{a.id}")
+                p.rename(dest)
+                a.file_path = str(dest)
+                moved += 1
+        a.status = AssetStatus.failed
+    for e in (await db.execute(
+        select(Episode).where(Episode.project_id == project_id)
+    )).scalars().all():
+        e.final_video_path = None
+    await db.commit()
+    return {"assets_marked": len(assets), "files_moved_aside": moved}
+
+
 @router.post("/projects/{project_id}/redo-all-prompts")
 async def redo_all_prompts(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     """Regenerate analysis + scenes + prompts for EVERY episode, NO rendering.
-    Use after a hard reset to rebuild all prompts first; then call /dispatch to
-    render (the pipeline skips the already-done prompt stages)."""
-    await get_or_404(db, Project, project_id, "Project")
-    from app.orchestration.tasks import task_redo_all_prompts
-    r = task_redo_all_prompts.delay(str(project_id))
-    return {"project_id": str(project_id), "task_id": r.id, "status": "redoing_prompts"}
+    Dispatches ONE short task per episode (not one long loop) — each is well
+    under the broker visibility_timeout and holds a per-episode lock, so no task
+    is ever redelivered/duplicated. Then call /dispatch to render (the pipeline
+    skips the already-done prompt stages)."""
+    project = await get_or_404(db, Project, project_id, "Project")
+    project.status = ProjectStatus.analyzing  # keep stages from short-circuiting
+    eps = (await db.execute(
+        select(Episode.id).where(Episode.project_id == project_id)
+        .order_by(Episode.order_index)
+    )).scalars().all()
+    await db.commit()
+    from app.orchestration.tasks import task_episode_prompts
+    for eid in eps:
+        task_episode_prompts.delay(str(project_id), str(eid))
+    return {"project_id": str(project_id), "episodes_queued": len(eps),
+            "status": "redoing_prompts"}
 
 
 @router.post("/projects/{project_id}/dispatch", response_model=ProjectRead)
