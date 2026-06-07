@@ -27,11 +27,11 @@ def test_timestamps_with_character_bracket_pass():
     style_lock = "warm cinematic golden-hour palette"
     vp = (
         "0–1s [Farmer]: hands crumble soil. "
-        "1–2s [Sadhguru]: walks across the field. "
-        "2–3s [Sadhguru]: kneels and lifts soil. "
+        "1–2s [Maya]: walks across the field. "
+        "2–3s [Maya]: kneels and lifts soil. "
         f"{style_lock}."
     )
-    sb = "\n".join(f"{i}–{i + 1}s [Sadhguru]: line {i}" for i in range(3))
+    sb = "\n".join(f"{i}–{i + 1}s [Maya]: line {i}" for i in range(3))
     report = validate_scene_prompt(
         video_prompt=vp,
         negative_prompt=_full_negative(),

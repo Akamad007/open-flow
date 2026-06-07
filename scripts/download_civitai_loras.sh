@@ -17,7 +17,7 @@ if [ -z "${CIVITAI_TOKEN:-}" ]; then
   exit 1
 fi
 
-LORA_DIR="${LORA_DIR:-/home/akash/Wan2.2-Models/loras/5b}"
+LORA_DIR="${LORA_DIR:-${MODELS_ROOT:-$HOME/models}/wan22/loras/5b}"
 mkdir -p "$LORA_DIR"
 
 # Each line: version_id  expected_filename  display_name

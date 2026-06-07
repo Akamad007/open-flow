@@ -65,7 +65,7 @@ async def test_upload_product_creates_asset(client, db_session):
     p = await _project(db_session)
     resp = await client.post(
         f"/api/projects/{p.id}/uploads/product",
-        data={"label": "tan Birkin handbag"},
+        data={"label": "tan leather handbag"},
         files={"file": ("bag.png", _png_bytes(color="brown"), "image/png")},
     )
     assert resp.status_code == 201, resp.text
@@ -83,7 +83,7 @@ async def test_upload_character_and_product_are_distinct(client, db_session):
     )
     await client.post(
         f"/api/projects/{p.id}/uploads/product",
-        data={"label": "Birkin"},
+        data={"label": "handbag"},
         files={"file": ("b.png", _png_bytes(), "image/png")},
     )
     rows = (await db_session.execute(

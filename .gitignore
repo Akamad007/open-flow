@@ -72,3 +72,6 @@ run_queue_*.py
 /ltx_generate.py
 /wan_generate.py
 /chatterbox_generate.py
+
+# Personal-content example (kept locally, not shipped)
+examples/scripts/reprompt_sadhguru.py

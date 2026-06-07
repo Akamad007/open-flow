@@ -54,7 +54,7 @@ EMBED_SCRIPT = Path(cfg.instantid_dir) / "extract_embedding.py"
 
 
 def _embedding_path(portrait_path: str) -> Path:
-    """`storage/.../sadhguru.png` → `storage/.../sadhguru.idemb.pt`."""
+    """`storage/.../maya.png` → `storage/.../maya.idemb.pt`."""
     p = Path(portrait_path)
     return p.with_name(p.stem + f".{ENCODER_VERSION}.idemb.pt")
 

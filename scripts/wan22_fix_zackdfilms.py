@@ -4,10 +4,12 @@
 Source format:  blocks.0.cross_attn.k.lora_A.default.weight
 Target format:  diffusion_model.blocks.0.cross_attn.k.lora_A.weight
 """
+import os
+
 from safetensors.torch import load_file, save_file
 
-SRC = "/home/akash/Wan2.2-Models/loras/5b/zackdfilms_5b.safetensors"
-DST = "/home/akash/Wan2.2-Models/loras/5b/zackdfilms_5b_fixed.safetensors"
+SRC = os.getenv("LORA_SRC", os.path.expanduser("~/models/wan22/loras/5b/zackdfilms_5b.safetensors"))
+DST = os.getenv("LORA_DST", os.path.expanduser("~/models/wan22/loras/5b/zackdfilms_5b_fixed.safetensors"))
 
 state = load_file(SRC)
 fixed = {}

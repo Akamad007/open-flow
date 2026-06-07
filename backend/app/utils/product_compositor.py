@@ -2,7 +2,7 @@
 
 InstantID + OpenPose dual-CN locks face identity and body pose, but it
 has no signal for arbitrary product placement — so a "character holding
-cola" prompt produces a great Sadhguru with empty hands. PRODUCT-IMG2IMG
+cola" prompt produces a great Maya with empty hands. PRODUCT-IMG2IMG
 goes the other way and bulldozes the character. This compositor fills
 the gap by alpha-pasting the product onto the already-rendered character
 at a role-appropriate scale and position.

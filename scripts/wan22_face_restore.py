@@ -5,6 +5,7 @@ Usage: wan22_face_restore.py <input.mp4> <output.mp4>
 """
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -17,7 +18,7 @@ import sys as _sys
 _sys.modules["torchvision.transforms.functional_tensor"] = _tvf
 from gfpgan import GFPGANer
 
-GFPGAN_WEIGHTS = "/home/akash/.cache/gfpgan/GFPGANv1.4.pth"
+GFPGAN_WEIGHTS = os.getenv("GFPGAN_WEIGHTS", os.path.expanduser("~/.cache/gfpgan/GFPGANv1.4.pth"))
 TMP_ROOT = Path("/tmp/wan22_face_restore")
 
 

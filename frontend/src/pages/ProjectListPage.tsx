@@ -167,7 +167,7 @@ export function ProjectListPage() {
               className="textarea"
               value={theme}
               onChange={e => setTheme(e.target.value)}
-              placeholder="e.g. Baby Krishna plays the flute in a moonlit Vrindavan forest while cows listen"
+              placeholder="e.g. A lighthouse keeper rows out to a storm-wrecked ship at dawn while gulls circle"
               rows={2}
             />
           </div>
@@ -250,7 +250,7 @@ export function ProjectListPage() {
             onUpdate={(id, patch) => updateRef(setProductRefs, id, patch)}
             onAdd={() => addRef(setProductRefs)}
             onRemove={(id) => removeRef(setProductRefs, id)}
-            labelPlaceholder='Product name (e.g. "tan Birkin handbag")'
+            labelPlaceholder='Product name (e.g. "tan leather handbag")'
           />
 
           <div className="form-group">

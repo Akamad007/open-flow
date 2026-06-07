@@ -115,17 +115,17 @@ def test_returns_none_when_all_priors_are_environmental_and_current_has_char():
 # ──────────────── narrative shape sanity ────────────────
 
 def test_typical_two_character_dialogue_shape():
-    """Krishna-Arjuna alternating closeups in the Gita scene:
-      0: Arjuna closeup
-      1: Krishna closeup
-      2: Arjuna closeup
-      3: Krishna closeup
-    Scene 3 (Krishna) should seed from scene 1 (last Krishna), not scene 2
-    (Arjuna) — this keeps each character's identity stable across alternation.
+    """Two-character alternating closeups (hero vs rival):
+      0: rival closeup
+      1: hero closeup
+      2: rival closeup
+      3: hero closeup
+    Scene 3 (hero) should seed from scene 1 (last hero), not scene 2
+    (rival) — this keeps each character's identity stable across alternation.
     """
-    ARJUNA, KRISHNA = 10, 11
-    priors_for_scene_3 = [(2, {ARJUNA}), (1, {KRISHNA}), (0, {ARJUNA})]
-    assert _pick_seed_scene_index({KRISHNA}, priors_for_scene_3) == 1
+    RIVAL, HERO = 10, 11
+    priors_for_scene_3 = [(2, {RIVAL}), (1, {HERO}), (0, {RIVAL})]
+    assert _pick_seed_scene_index({HERO}, priors_for_scene_3) == 1
 
 
 def test_typical_escape_narrative_shape():

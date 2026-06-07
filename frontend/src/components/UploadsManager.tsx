@@ -128,7 +128,7 @@ function UploadKindSection({ title, helpText, kind, projectId, items, onUploaded
       <form onSubmit={handleUpload} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 12 }}>
         <input
           type="text"
-          placeholder={kind === 'character' ? 'Character name (e.g. "Alice")' : 'Product name (e.g. "tan Birkin handbag")'}
+          placeholder={kind === 'character' ? 'Character name (e.g. "Alice")' : 'Product name (e.g. "tan leather handbag")'}
           value={label}
           onChange={e => setLabel(e.target.value)}
           style={{ flex: '1 1 240px', minWidth: 200, padding: 6 }}

@@ -97,10 +97,10 @@ def test_instantid_no_fallback_errors_on_plain():
 def test_embedding_path_includes_encoder_version(tmp_path):
     from app.agents.image_pregen._identity import _embedding_path, ENCODER_VERSION
 
-    portrait = tmp_path / "sadhguru.png"
+    portrait = tmp_path / "maya.png"
     portrait.write_bytes(b"fake")
     p = _embedding_path(str(portrait))
-    assert p.name == f"sadhguru.{ENCODER_VERSION}.idemb.pt"
+    assert p.name == f"maya.{ENCODER_VERSION}.idemb.pt"
 
 
 def test_is_fresh_cache_miss(tmp_path):
@@ -375,7 +375,7 @@ def test_pose_library_short_kw_does_not_prefix_match_unrelated_text(monkeypatch,
     pose_library.reload()
 
     action = (
-        "Sadhguru kneels on parched cracked earth. He lets dry soil "
+        "Maya kneels on parched cracked earth. He lets dry soil "
         "sift through his fingers, addressing the camera urgently."
     )
     hit = pose_library.match(action)
