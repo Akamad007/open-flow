@@ -26,7 +26,7 @@ from app.models.scene_prompt import ScenePrompt
 from app.orchestration._common import (
     assert_project_active, get_llm_provider, get_strong_llm_provider,
 )
-from app.orchestration.episode_helpers import resolve_active_episode
+from app.orchestration.episode_helpers import get_episode, resolve_active_episode
 from app.orchestration.profiles import get_profile
 
 logger = logging.getLogger(__name__)
@@ -153,6 +153,30 @@ def _build_context(
     }
 
 
+_FALLBACK_NEGATIVE = (
+    "text, subtitles, watermark, logo, title card, letters, words, "
+    "fast motion, jitter, flickering, temporal inconsistency, blurry, distorted, "
+    "mirror, reflection, double face, extra limbs, deformed"
+)
+
+
+def _apply_fallback_prompt(scene: Scene, project: Any, db: AsyncSession) -> None:
+    """Never leave a scene without a prompt: a missing video_prompt makes the
+    renderer skip the scene, which later fails stitching ('Missing scenes')."""
+    if not scene.prompt:
+        scene.prompt = ScenePrompt(scene_id=scene.id)
+        db.add(scene.prompt)
+    style = (project.style_lock or "").strip() or (
+        "Semi-realistic Studio Ghibli style, painterly hand-drawn animation, "
+        "soft warm cinematic lighting, lush detailed background"
+    )
+    summary = (scene.visual_summary or scene.scene_purpose
+               or scene.source_excerpt or "a calm, gentle, tasteful scene").strip()
+    scene.prompt.video_prompt = f"{style}. {summary}. Slow, deliberate, graceful motion; gentle camera drift."
+    scene.prompt.negative_prompt = _FALLBACK_NEGATIVE
+    scene.status = SceneStatus.prompted
+
+
 def _apply_prompt_result(scene: Scene, result: Any, db: AsyncSession) -> None:
     if not scene.prompt:
         scene.prompt = ScenePrompt(scene_id=scene.id)
@@ -180,12 +204,12 @@ def _apply_prompt_result(scene: Scene, result: Any, db: AsyncSession) -> None:
     # from the previous scene's last frame. Default is True (no chain) unless
     # the nano explicitly opts in by setting continues_from_previous=true (tight
     # physical continuation: same location, same time of day, same pose).
-    cont = data.get("continues_from_previous")
-    if cont is None:
-        # backward-compat: leave the existing scene flag alone
-        pass
-    else:
-        scene.skip_last_frame_chain = not bool(cont)
+    # Within-episode continuity is REQUIRED: every non-opening scene chains from
+    # the previous scene's last frame so the episode reads as one continuous take.
+    # We override the nano's per-scene opt-out on purpose. The last-frame resolver
+    # only chains across scenes that SHARE a character, so cross-subject cuts won't
+    # morph. Only engages when scenes render sequentially (not PARALLEL_SCENES).
+    scene.skip_last_frame_chain = (scene.order_index == 0)
     scene.status = SceneStatus.prompted
 
 
@@ -238,8 +262,11 @@ async def _run_batched(
         for (i, scene), result in zip(batch, results):
             if not result or not result.success:
                 logger.warning(
-                    "Scene %d batched gen returned no usable result", scene.order_index,
+                    "Scene %d batched gen returned no usable result — applying "
+                    "fallback prompt so the scene still renders (was silently "
+                    "dropped before, which broke stitching)", scene.order_index,
                 )
+                _apply_fallback_prompt(scene, project, db)
                 continue
             _apply_prompt_result(scene, result, db)
         await db.flush()
@@ -283,10 +310,12 @@ async def _assign_loras(scenes: list[Scene], db: AsyncSession) -> None:
     logger.info("LoRA director: assigned plans to %d/%d scenes", saved, len(items))
 
 
-async def run(project_id: str, critique_feedback: Optional[dict] = None) -> None:
+async def run(project_id: str, critique_feedback: Optional[dict] = None,
+              episode_id: str | None = None) -> None:
     async with async_session_factory() as db:
         project = await assert_project_active(db, project_id, "prompt_generation")
-        episode = await resolve_active_episode(db, project_id)
+        episode = (await get_episode(db, episode_id)) if episode_id \
+            else await resolve_active_episode(db, project_id)
         if episode is None:
             raise RuntimeError(f"No episode for project {project_id}")
 

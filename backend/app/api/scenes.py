@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api._common import NOT_FOUND_RESPONSE, get_or_404
 from app.database import get_db
 from app.models.episode import Episode
 from app.models.project import Project
@@ -17,7 +18,7 @@ from app.orchestration.episode_helpers import resolve_active_episode
 from app.schemas.scene import SceneCreate, SceneRead, SceneReorder, SceneUpdate
 from app.schemas.scene_prompt import ScenePromptUpdate
 
-router = APIRouter(tags=["scenes"])
+router = APIRouter(tags=["scenes"], responses=NOT_FOUND_RESPONSE)
 
 
 async def _load_scene(db: AsyncSession, scene_id: uuid.UUID) -> Scene | None:
@@ -28,6 +29,14 @@ async def _load_scene(db: AsyncSession, scene_id: uuid.UUID) -> Scene | None:
         .options(selectinload(Scene.prompt), selectinload(Scene.characters))
     )
     return result.scalar_one_or_none()
+
+
+async def _get_scene_or_404(db: AsyncSession, scene_id: uuid.UUID) -> Scene:
+    """Eager-load a scene (with its relations) or raise a standardized 404."""
+    scene = await _load_scene(db, scene_id)
+    if scene is None:
+        raise HTTPException(status_code=404, detail="Scene not found")
+    return scene
 
 
 @router.get("/projects/{project_id}/scenes", response_model=List[SceneRead])
@@ -51,8 +60,7 @@ async def create_scene(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a scene, appended to the end of the given (or active) episode."""
-    if not await db.get(Project, project_id):
-        raise HTTPException(status_code=404, detail="Project not found")
+    await get_or_404(db, Project, project_id, "Project")
     if data.episode_id is not None:
         episode = await db.get(Episode, data.episode_id)
         if episode is None or episode.project_id != project_id:
@@ -77,15 +85,7 @@ async def create_scene(
 @router.get("/scenes/{scene_id}", response_model=SceneRead)
 async def get_scene(scene_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     """Get scene details."""
-    stmt = (
-        select(Scene)
-        .where(Scene.id == scene_id)
-        .options(selectinload(Scene.prompt), selectinload(Scene.characters))
-    )
-    result = await db.execute(stmt)
-    scene = result.scalar_one_or_none()
-    if not scene:
-        raise HTTPException(status_code=404, detail="Scene not found")
+    scene = await _get_scene_or_404(db, scene_id)
     return SceneRead.model_validate(scene)
 
 
@@ -96,16 +96,7 @@ async def update_scene(
     db: AsyncSession = Depends(get_db),
 ):
     """Update a scene."""
-    stmt = (
-        select(Scene)
-        .where(Scene.id == scene_id)
-        .options(selectinload(Scene.prompt), selectinload(Scene.characters))
-    )
-    result = await db.execute(stmt)
-    scene = result.scalar_one_or_none()
-    if not scene:
-        raise HTTPException(status_code=404, detail="Scene not found")
-
+    scene = await _get_scene_or_404(db, scene_id)
     update_data = data.model_dump(exclude_unset=True)
     if update_data.get("continuity_prev_scene_id") == scene_id:
         raise HTTPException(status_code=400, detail="A scene cannot be its own continuity predecessor")
@@ -120,9 +111,7 @@ async def update_scene(
 @router.delete("/scenes/{scene_id}", status_code=204)
 async def delete_scene(scene_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     """Delete a scene."""
-    scene = await db.get(Scene, scene_id)
-    if not scene:
-        raise HTTPException(status_code=404, detail="Scene not found")
+    scene = await get_or_404(db, Scene, scene_id, "Scene")
     await db.delete(scene)
 
 
@@ -133,16 +122,7 @@ async def update_scene_prompt(
     db: AsyncSession = Depends(get_db),
 ):
     """Update the prompt for a scene."""
-    stmt = (
-        select(Scene)
-        .where(Scene.id == scene_id)
-        .options(selectinload(Scene.prompt), selectinload(Scene.characters))
-    )
-    result = await db.execute(stmt)
-    scene = result.scalar_one_or_none()
-    if not scene:
-        raise HTTPException(status_code=404, detail="Scene not found")
-
+    scene = await _get_scene_or_404(db, scene_id)
     if not scene.prompt:
         scene.prompt = ScenePrompt(scene_id=scene_id)
         db.add(scene.prompt)

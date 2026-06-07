@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api._common import NOT_FOUND_RESPONSE, get_or_404
 from app.database import get_db
 from app.models.asset import Asset, AssetStatus, AssetType
 from app.models.episode import Episode, EpisodeStatus
@@ -30,7 +31,7 @@ from app.utils.youtube_audio import (
     probe_duration,
 )
 
-router = APIRouter(tags=["episodes"])
+router = APIRouter(tags=["episodes"], responses=NOT_FOUND_RESPONSE)
 
 
 async def _next_order_index(db: AsyncSession, project_id: uuid.UUID) -> int:
@@ -59,8 +60,7 @@ async def _maybe_dispatch_pipeline(db: AsyncSession, project: Project) -> None:
 
 @router.get("/projects/{project_id}/episodes", response_model=List[EpisodeList])
 async def list_episodes(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    if not await db.get(Project, project_id):
-        raise HTTPException(status_code=404, detail="Project not found")
+    await get_or_404(db, Project, project_id, "Project")
     rows = (await db.execute(
         select(Episode).where(Episode.project_id == project_id)
         .order_by(Episode.order_index)
@@ -89,9 +89,7 @@ def _probe_youtube_or_400(url: str) -> float:
 async def create_episode(
     project_id: uuid.UUID, data: EpisodeCreate, db: AsyncSession = Depends(get_db),
 ):
-    project = await db.get(Project, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+    project = await get_or_404(db, Project, project_id, "Project")
     order_index = await _next_order_index(db, project_id)
     title = data.title or f"Episode {order_index + 1}"
 
@@ -152,9 +150,7 @@ async def create_episode_from_theme(
 
 @router.get("/episodes/{episode_id}", response_model=EpisodeRead)
 async def get_episode(episode_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    ep = await db.get(Episode, episode_id)
-    if not ep:
-        raise HTTPException(status_code=404, detail="Episode not found")
+    ep = await get_or_404(db, Episode, episode_id, "Episode")
     out = EpisodeRead.model_validate(ep)
     out.scene_count = await _scene_count_for(db, ep.id)
     return out
@@ -167,9 +163,7 @@ _LATE_TOGGLABLE = {"skip_audio"}
 async def update_episode(
     episode_id: uuid.UUID, data: EpisodeUpdate, db: AsyncSession = Depends(get_db),
 ):
-    ep = await db.get(Episode, episode_id)
-    if not ep:
-        raise HTTPException(status_code=404, detail="Episode not found")
+    ep = await get_or_404(db, Episode, episode_id, "Episode")
     update = data.model_dump(exclude_unset=True)
     is_terminal = ep.status in (EpisodeStatus.draft, EpisodeStatus.failed)
     if not is_terminal:
@@ -207,9 +201,7 @@ async def attach_youtube_audio(
     import asyncio
     from pathlib import Path as _Path
 
-    ep = await db.get(Episode, episode_id)
-    if not ep:
-        raise HTTPException(status_code=404, detail="Episode not found")
+    ep = await get_or_404(db, Episode, episode_id, "Episode")
     url = data.youtube_audio_url.strip()
     mode = (data.mode or "replace").lower().strip()
     if mode not in ("replace", "mix"):
@@ -270,7 +262,5 @@ async def attach_youtube_audio(
 
 @router.delete("/episodes/{episode_id}", status_code=204)
 async def delete_episode(episode_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    ep = await db.get(Episode, episode_id)
-    if not ep:
-        raise HTTPException(status_code=404, detail="Episode not found")
+    ep = await get_or_404(db, Episode, episode_id, "Episode")
     await db.execute(delete(Episode).where(Episode.id == episode_id))

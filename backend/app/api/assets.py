@@ -9,11 +9,12 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api._common import NOT_FOUND_RESPONSE, get_or_404
 from app.database import get_db
 from app.models.asset import Asset
 from app.schemas.asset import AssetRead
 
-router = APIRouter(tags=["assets"])
+router = APIRouter(tags=["assets"], responses=NOT_FOUND_RESPONSE)
 
 # Map file suffix → MIME type
 _MEDIA_TYPES: dict[str, str] = {
@@ -43,9 +44,7 @@ async def list_assets(project_id: uuid.UUID, db: AsyncSession = Depends(get_db))
 
 @router.get("/assets/{asset_id}", response_model=AssetRead)
 async def get_asset(asset_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    asset = await db.get(Asset, asset_id)
-    if not asset:
-        raise HTTPException(status_code=404, detail="Asset not found")
+    asset = await get_or_404(db, Asset, asset_id, "Asset")
     return AssetRead.model_validate(asset)
 
 

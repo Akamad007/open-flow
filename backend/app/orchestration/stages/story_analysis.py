@@ -25,7 +25,7 @@ from app.models.product import Product
 from app.models.project import Project, ProjectStatus
 from app.models.render_job import JobStatus, JobType, RenderJob
 from app.orchestration._common import assert_project_active, get_llm_provider
-from app.orchestration.episode_helpers import resolve_active_episode
+from app.orchestration.episode_helpers import get_episode, resolve_active_episode
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +72,15 @@ def _create_products(db: AsyncSession, project_id: UUID, products_data: list[dic
             color_palette=p.get("color_palette"),
             hero_angle=p.get("hero_angle"),
         ))
+
+
+async def _create_new_named(db, existing_names_stmt, items, name_key, creator) -> None:
+    """Create only items whose name isn't already used in the project (dedup by name)."""
+    existing = set((await db.execute(existing_names_stmt)).scalars().all())
+    fresh = [it for it in items
+             if (it.get(name_key) or "").strip() and it.get(name_key) not in existing]
+    if fresh:
+        creator(fresh)
 
 
 async def _already_analyzed(db: AsyncSession, episode: Episode) -> bool:
@@ -148,11 +157,12 @@ async def _expand_theme(
     return result.data["story_text"]
 
 
-async def run(project_id: str) -> None:
+async def run(project_id: str, episode_id: str | None = None) -> None:
     async with async_session_factory() as db:
         project = await assert_project_active(db, project_id, "story_analysis")
 
-        episode = await resolve_active_episode(db, project_id)
+        episode = (await get_episode(db, episode_id)) if episode_id \
+            else await resolve_active_episode(db, project_id)
         if episode is None:
             raise RuntimeError(f"No episode found for project {project_id}")
 
@@ -218,23 +228,26 @@ async def run(project_id: str) -> None:
             project.pacing_notes = episode.pacing_notes
             project.style_lock = episode.style_lock
 
-            # Project-scoped cast: only create entries that don't yet exist
-            # (later episodes reuse the cast established in earlier ones).
-            existing_chars = await db.scalar(
-                select(func.count(Character.id)).where(Character.project_id == project.id)
+            # Per-episode cast, deduped BY NAME: each episode adds the cast it
+            # introduces; an existing canonical_name is reused so recurring
+            # characters keep one identity. (The old skip-if-ANY-exist guard
+            # made every later episode reuse episode 0's whole cast — e.g.
+            # every tarot card ended up looking like The Fool.)
+            await _create_new_named(
+                db, select(Character.canonical_name).where(Character.project_id == project.id),
+                data.get("characters", []), "canonical_name",
+                lambda items: _create_characters(db, project.id, items),
             )
-            if not existing_chars:
-                _create_characters(db, project.id, data.get("characters", []))
-            existing_locs = await db.scalar(
-                select(func.count(Location.id)).where(Location.project_id == project.id)
+            await _create_new_named(
+                db, select(Location.name).where(Location.project_id == project.id),
+                data.get("locations", []), "name",
+                lambda items: _create_locations(db, project.id, items),
             )
-            if not existing_locs:
-                _create_locations(db, project.id, data.get("locations", []))
-            existing_prods = await db.scalar(
-                select(func.count(Product.id)).where(Product.project_id == project.id)
+            await _create_new_named(
+                db, select(Product.canonical_name).where(Product.project_id == project.id),
+                data.get("products", []) or [], "canonical_name",
+                lambda items: _create_products(db, project.id, items),
             )
-            if not existing_prods:
-                _create_products(db, project.id, data.get("products", []))
 
             job.status = JobStatus.complete
             job.result_json = json.dumps({

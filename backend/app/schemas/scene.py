@@ -39,6 +39,7 @@ class SceneUpdate(BaseModel):
     caption: Optional[str] = None
     status: Optional[SceneStatus] = None
     locked: Optional[bool] = None
+    skip_last_frame_chain: Optional[bool] = None
     location_id: Optional[uuid.UUID] = None
 
 
@@ -61,6 +62,7 @@ class SceneRead(BaseModel):
     location_id: Optional[uuid.UUID]
     status: SceneStatus
     locked: bool
+    skip_last_frame_chain: bool = True
     prompt: Optional[ScenePromptRead] = None
     characters: List[CharacterRead] = []
     evaluation_json: Optional[str] = None

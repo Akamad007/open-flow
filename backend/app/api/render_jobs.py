@@ -3,15 +3,16 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api._common import NOT_FOUND_RESPONSE, get_or_404
 from app.database import get_db
 from app.models.render_job import RenderJob
 from app.schemas.render_job import RenderJobRead
 
-router = APIRouter(tags=["render_jobs"])
+router = APIRouter(tags=["render_jobs"], responses=NOT_FOUND_RESPONSE)
 
 
 @router.get("/projects/{project_id}/jobs", response_model=List[RenderJobRead])
@@ -27,7 +28,5 @@ async def list_jobs(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 
 @router.get("/jobs/{job_id}", response_model=RenderJobRead)
 async def get_job(job_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    job = await db.get(RenderJob, job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+    job = await get_or_404(db, RenderJob, job_id, "Job")
     return RenderJobRead.model_validate(job)

@@ -212,9 +212,9 @@ def _build_user_prompt(scene: dict, characters: list[dict], all_characters: list
     return f"""Generate a structured cinematic video prompt for this scene using the 6-Dimension Framework.
 
 🎯🎯🎯 WORD BUDGET — RICHER IS BETTER 🎯🎯🎯
-`video_prompt` TARGET: **270-300 words**. Validator REJECTS over 320.
+`video_prompt` TARGET: **210-250 words**. Validator REJECTS over 320.
 Use the room: pack each character bible (~60-90w) and setting line (~30-45w) with concrete sensory nouns. Each per-second beat ~16-20w with one sensory detail (light, fabric, dust, breath).
-Sparse prompts (<220w) render generic; richer prompts with specific nouns render sharper.
+Sparse prompts (<170w) render generic; richer prompts with specific nouns render sharper.
 Be specific, NOT padded — noun-phrases > adjective-stacks. Cut articles and hedges, but add concrete sensory detail.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -276,7 +276,7 @@ DIM 5 STRUCTURE (PER-SECOND, MANDATORY, scene is {n_sec}s):
     ...
     {n_sec - 1}–{n_sec}s: action + camera
     End: held frame.
-DIM 6 ASSEMBLED PROMPT — combine 2–5 into ONE paragraph TARGETING 270-300 words (validator ceiling 320; Wan22 UMT5 cliff is ~330–350 tokens — do NOT cross). Pack character bibles with concrete attributes (60-90w each), setting with named props/light/weather (30-45w), and 5 beats with sensory detail each (16-20w). Every per-second timestamp from DIM 5 MUST appear verbatim. NEVER write the words "logo", "subtitle", "watermark", or "title card" in DIM 6 (they're forbidden by the negative prompt).
+DIM 6 ASSEMBLED PROMPT — combine 2–5 into ONE paragraph TARGETING 210-250 words (validator ceiling 320; Wan22 UMT5 cliff is ~330–350 tokens — do NOT cross). Pack character bibles with concrete attributes (60-90w each), setting with named props/light/weather (30-45w), and 5 beats with sensory detail each (16-20w). Every per-second timestamp from DIM 5 MUST appear verbatim. NEVER write the words "logo", "subtitle", "watermark", or "title card" in DIM 6 (they're forbidden by the negative prompt).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Return ONLY valid JSON with these exact fields:
@@ -289,7 +289,7 @@ Return ONLY valid JSON with these exact fields:
   "camera_angle": "<explicit angle/framing>",
   "dim_structure": "<per-second beats with [CharName] brackets>",
   "scene_breakdown": "<DIM 5 verbatim, one line per second, with [CharName] brackets>",
-  "video_prompt": "<DIM 6 assembled prompt TARGET 270-300 words (ceiling 320; ≈ 325 tokens — Wan22 UMT5 cliff is ~330–350 tokens; do NOT cross), present tense, all per-second timestamps embedded verbatim>",
+  "video_prompt": "<DIM 6 assembled prompt TARGET 210-250 words (ceiling 320; ≈ 325 tokens — Wan22 UMT5 cliff is ~330–350 tokens; do NOT cross), present tense, all per-second timestamps embedded verbatim>",
   "negative_prompt": "text, subtitles, watermark, logo, title card, letters, words, folk art, static camera, frozen, jitter, flickering, temporal inconsistency, blurry, distorted, mirror, reflection, mirrored surface, vanity mirror, double face, reflected character",
   "continuity_guardrails": "<what must stay consistent with adjacent scenes>",
   "continues_from_previous": <true | false — true ONLY if same location AND same lighting AND same framing AND same pose AND no implied cut; false otherwise. Default false. See "CONTINUITY DECISION" section.>
@@ -312,9 +312,9 @@ def _build_batched_user_prompt(contexts: list[dict[str, Any]]) -> str:
     header = f"""You are batching scene prompts. Generate the 6-Dimension visual prompt for EACH scene below.
 
 🎯🎯🎯 WORD BUDGET — RICHER RENDERS BETTER 🎯🎯🎯
-Each scene's `video_prompt` field TARGETS **270-300 words**. Validator ceiling: 320 (321+ = REJECTED).
+Each scene's `video_prompt` field TARGETS **210-250 words**. Validator ceiling: 320 (321+ = REJECTED).
 - Use the room: character bibles 60-90w each with concrete attributes, setting 30-45w with named props/light/weather, 5 beats with one sensory detail each (16-20w/beat).
-- Sparse <220w prompts render GENERIC; richer specific-noun prompts render SHARPER.
+- Sparse <170w prompts render GENERIC; richer specific-noun prompts render SHARPER.
 - Be specific, not padded. Noun-phrases > adjective-stacks. Cut articles + hedges + "also/then/and" chains, but add concrete sensory anchors (light catching cloth, dust in shafted light, wet stone, ash on feet).
 - The 6-Dimension framework is a CHECKLIST — fold style/character/camera into the 5-section template (style line / character bibles / Setting: / 5 beats / closing).
 This applies to EVERY scene in the batch, every time.
@@ -339,7 +339,7 @@ DIM 2 CONTENT — [Style]. [Character: exact appearance] in [Environment] [Actio
 DIM 3 STYLE — visual style + lighting + color tone + texture + atmosphere. Use the style_lock verbatim.
 DIM 4 CAMERA — concrete shot rules ("slow dolly-in from wide to medium close-up"). No adjectives.
 DIM 5 STRUCTURE — for each scene of duration D seconds, write ONE beat per second (0–1s, 1–2s, …, (D-1)–Ds). Keep each character's identity stable across beats — don't swap who's who mid-scene. NO `[CharName]` brackets. End with "End: held frame."
-DIM 6 ASSEMBLED PROMPT — combine 2–5 into ONE paragraph TARGETING 270-300 words (ceiling 320; ≈ 325 tokens — Wan22 UMT5 cliff is ~330–350 tokens; do NOT cross). Use the room: rich character bibles (60-90w each), packed setting line (30-45w), 5 beats with sensory detail (16-20w/beat). Every per-second timestamp from DIM 5 MUST appear verbatim. NEVER write "logo", "subtitle", "watermark", "title card" in DIM 6.
+DIM 6 ASSEMBLED PROMPT — combine 2–5 into ONE paragraph TARGETING 210-250 words (ceiling 320; ≈ 325 tokens — Wan22 UMT5 cliff is ~330–350 tokens; do NOT cross). Use the room: rich character bibles (60-90w each), packed setting line (30-45w), 5 beats with sensory detail (16-20w/beat). Every per-second timestamp from DIM 5 MUST appear verbatim. NEVER write "logo", "subtitle", "watermark", "title card" in DIM 6.
 
 ⚠️ CHARACTER SCOPE: each scene renders the characters listed in its block below (could be one, two, or none). Never copy descriptions from other scenes.
 ⚠️ CONTINUITY (HARD): each scene's `0–1s:` beat must resume the EXACT action/pose the previous scene ended on; the final beat must set up the next scene's opening. No fades, cuts to black, or re-establishing shots.
@@ -347,7 +347,7 @@ DIM 6 ASSEMBLED PROMPT — combine 2–5 into ONE paragraph TARGETING 270-300 wo
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SCENES TO GENERATE — {len(contexts)} total
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 REMINDER: each scene's `video_prompt` TARGETS 270-300 words (ceiling 320). Pack with concrete sensory nouns — sparse <220w prompts render generic. Be specific, not padded.
+🎯 REMINDER: each scene's `video_prompt` TARGETS 210-250 words (ceiling 320). Pack with concrete sensory nouns — sparse <170w prompts render generic. Be specific, not padded.
 """
 
     blocks = []
@@ -414,7 +414,7 @@ OUTPUT — return EXACTLY this JSON shape (one entry per SCENE block above, in t
       "camera_angle": "<explicit angle/framing>",
       "dim_structure": "<per-second beats>",
       "scene_breakdown": "<DIM 5 verbatim, one line per second>",
-      "video_prompt": "<DIM 6 assembled prompt TARGET 270-300 words (ceiling 320; ≈ 325 tokens — Wan22 UMT5 cliff is ~330–350 tokens; do NOT cross), present tense, all per-second timestamps embedded verbatim>",
+      "video_prompt": "<DIM 6 assembled prompt TARGET 210-250 words (ceiling 320; ≈ 325 tokens — Wan22 UMT5 cliff is ~330–350 tokens; do NOT cross), present tense, all per-second timestamps embedded verbatim>",
       "negative_prompt": "text, subtitles, watermark, logo, title card, letters, words, folk art, static camera, frozen, jitter, flickering, temporal inconsistency, blurry, distorted, mirror, reflection, mirrored surface, vanity mirror, double face, reflected character",
       "continuity_guardrails": "<what must stay consistent with adjacent scenes>",
       "continues_from_previous": <true | false — true ONLY if same location AND same lighting AND same framing AND same pose AND no implied cut; default false>

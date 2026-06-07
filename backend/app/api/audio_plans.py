@@ -2,15 +2,16 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api._common import NOT_FOUND_RESPONSE, get_or_404
 from app.database import get_db
 from app.models.audio_plan import AudioPlan
 from app.schemas.audio_plan import AudioPlanRead, AudioPlanUpdate
 
-router = APIRouter(tags=["audio_plans"])
+router = APIRouter(tags=["audio_plans"], responses=NOT_FOUND_RESPONSE)
 
 
 @router.get("/projects/{project_id}/audio-plan", response_model=AudioPlanRead | None)
@@ -40,10 +41,7 @@ async def update_audio_plan(
     data: AudioPlanUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    plan = await db.get(AudioPlan, plan_id)
-    if not plan:
-        raise HTTPException(status_code=404, detail="Audio plan not found")
-
+    plan = await get_or_404(db, AudioPlan, plan_id, "Audio plan")
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(plan, key, value)
 

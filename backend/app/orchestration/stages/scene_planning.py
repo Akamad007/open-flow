@@ -20,17 +20,42 @@ from app.models.project import ProjectStatus
 from app.models.render_job import JobStatus, JobType, RenderJob
 from app.models.scene import Scene, SceneStatus, scene_products
 from app.orchestration._common import assert_project_active, get_llm_provider
-from app.orchestration.episode_helpers import resolve_active_episode
+from app.orchestration.episode_helpers import get_episode, resolve_active_episode
 
 logger = logging.getLogger(__name__)
 
 
-async def _load_characters_for_planner(db: AsyncSession, project_id: UUID) -> list[dict[str, Any]]:
+def _char_in_corpus(name: str, corpus: str) -> bool:
+    """True if a character name (or a significant token of it) appears in the
+    episode's own story text — so each episode only uses the cast IT introduces,
+    not the whole project's accumulated cast (e.g. a tarot card features only its
+    own figure, not the recurring protagonist from episode 0)."""
+    stripped = _strip_parens(name)
+    if stripped and stripped in corpus:
+        return True
+    if name.lower() in corpus:
+        return True
+    tokens = [t for t in stripped.split() if len(t) >= 4]
+    return any(t in corpus for t in tokens)
+
+
+async def _load_characters_for_planner(
+    db: AsyncSession, project_id: UUID, episode: Any = None,
+) -> list[dict[str, Any]]:
     result = await db.execute(select(Character).where(Character.project_id == project_id))
-    return [
+    cast = [
         {"canonical_name": c.canonical_name, "physical_description": c.physical_description}
         for c in result.scalars().all()
     ]
+    if episode is None:
+        return cast
+    corpus = " ".join(filter(None, [
+        episode.original_story_text or "", episode.story_summary or "",
+        episode.beat_list_json or "",
+    ])).lower()
+    scoped = [c for c in cast if _char_in_corpus(c["canonical_name"], corpus)]
+    # Never leave the planner with zero characters — fall back to the full cast.
+    return scoped or cast
 
 
 async def _load_locations_for_planner(db: AsyncSession, project_id: UUID) -> list[dict[str, Any]]:
@@ -177,10 +202,11 @@ async def _link_product_to_scene(
     )
 
 
-async def run(project_id: str) -> None:
+async def run(project_id: str, episode_id: str | None = None) -> None:
     async with async_session_factory() as db:
         project = await assert_project_active(db, project_id, "scene_planning")
-        episode = await resolve_active_episode(db, project_id)
+        episode = (await get_episode(db, episode_id)) if episode_id \
+            else await resolve_active_episode(db, project_id)
         if episode is None:
             raise RuntimeError(f"No episode for project {project_id}")
 
@@ -202,7 +228,7 @@ async def run(project_id: str) -> None:
         await db.flush()
 
         try:
-            chars = await _load_characters_for_planner(db, project.id)
+            chars = await _load_characters_for_planner(db, project.id, episode)
             locs = await _load_locations_for_planner(db, project.id)
             products = await _load_products_for_planner(db, project.id)
             try:

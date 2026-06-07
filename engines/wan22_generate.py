@@ -59,6 +59,18 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
+def _enable_vae_savings(pipe) -> None:
+    # Lossless VRAM reductions — process VAE in tiles and attention in chunks
+    # so the 832×480×121f peak doesn't OOM.
+    if hasattr(pipe, "vae"):
+        if hasattr(pipe.vae, "enable_tiling"):
+            pipe.vae.enable_tiling()
+        if hasattr(pipe.vae, "enable_slicing"):
+            pipe.vae.enable_slicing()
+    if hasattr(pipe, "enable_attention_slicing"):
+        pipe.enable_attention_slicing("max")
+
+
 def load_pipe(model_dir: str, i2v: bool, sequential_offload: bool = False):
     cls = WanImageToVideoPipeline if i2v else WanPipeline
     pipe = cls.from_pretrained(model_dir, torch_dtype=torch.bfloat16)
@@ -71,15 +83,7 @@ def load_pipe(model_dir: str, i2v: bool, sequential_offload: bool = False):
         print("  using sequential CPU offload (low-VRAM mode)")
     else:
         pipe.enable_model_cpu_offload()
-    # Lossless VRAM reductions — process VAE in tiles and attention in chunks
-    # so the 832×480×121f peak doesn't OOM on the 16GB card.
-    if hasattr(pipe, "vae"):
-        if hasattr(pipe.vae, "enable_tiling"):
-            pipe.vae.enable_tiling()
-        if hasattr(pipe.vae, "enable_slicing"):
-            pipe.vae.enable_slicing()
-    if hasattr(pipe, "enable_attention_slicing"):
-        pipe.enable_attention_slicing("max")
+    _enable_vae_savings(pipe)
     return pipe
 
 

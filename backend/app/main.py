@@ -26,11 +26,34 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Shutting down")
 
 
+# Tag groups for Swagger UI (/docs) — ordered + described.
+TAGS_METADATA = [
+    {"name": "projects", "description": "Create, configure, reset, and dispatch projects to a GPU."},
+    {"name": "episodes", "description": "Per-episode story, status, and YouTube-audio attachment."},
+    {"name": "scenes", "description": "Scene CRUD, prompts, and ordering within an episode."},
+    {"name": "characters", "description": "Per-project character cast."},
+    {"name": "locations", "description": "Per-project locations."},
+    {"name": "products", "description": "Per-project branded SKUs for ads."},
+    {"name": "audio_plans", "description": "Narration/timing plans per episode."},
+    {"name": "assets", "description": "Generated media (videos, audio, stills) + file serving."},
+    {"name": "render_jobs", "description": "Pipeline job records and status."},
+    {"name": "images", "description": "Image pre-generation and retrieval."},
+    {"name": "uploads", "description": "User-uploaded reference images."},
+    {"name": "youtube", "description": "Kick off and track YouTube uploads."},
+    {"name": "generate", "description": "On-demand generation endpoints."},
+    {"name": "celery_log", "description": "Worker log tails for debugging."},
+]
+
 app = FastAPI(
-    title="OpenFlow",
-    description="OpenFlow — multi-agent system for converting stories into cinematic videos",
+    title="OpenFlow API",
+    description=(
+        "OpenFlow — multi-agent system that turns stories into cinematic videos.\n\n"
+        "Projects render through a Celery pipeline (analyze → plan → prompt → "
+        "image pre-gen → video → audio → stitch), routed per-project to a GPU."
+    ),
     version="0.1.0",
     lifespan=lifespan,
+    openapi_tags=TAGS_METADATA,
     dependencies=[Depends(require_api_key)],  # no-op unless API_KEY is set
 )
 

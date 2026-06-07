@@ -3,16 +3,17 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api._common import NOT_FOUND_RESPONSE, get_or_404
 from app.database import get_db
 from app.models.character import Character
 from app.models.project import Project
 from app.schemas.character import CharacterCreate, CharacterRead, CharacterUpdate
 
-router = APIRouter(tags=["characters"])
+router = APIRouter(tags=["characters"], responses=NOT_FOUND_RESPONSE)
 
 
 @router.get("/projects/{project_id}/characters", response_model=List[CharacterRead])
@@ -29,8 +30,7 @@ async def create_character(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a character in a project."""
-    if not await db.get(Project, project_id):
-        raise HTTPException(status_code=404, detail="Project not found")
+    await get_or_404(db, Project, project_id, "Project")
     character = Character(project_id=project_id, **data.model_dump())
     db.add(character)
     await db.flush()
@@ -40,9 +40,7 @@ async def create_character(
 
 @router.get("/characters/{character_id}", response_model=CharacterRead)
 async def get_character(character_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    character = await db.get(Character, character_id)
-    if not character:
-        raise HTTPException(status_code=404, detail="Character not found")
+    character = await get_or_404(db, Character, character_id, "Character")
     return CharacterRead.model_validate(character)
 
 
@@ -52,10 +50,7 @@ async def update_character(
     data: CharacterUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    character = await db.get(Character, character_id)
-    if not character:
-        raise HTTPException(status_code=404, detail="Character not found")
-
+    character = await get_or_404(db, Character, character_id, "Character")
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(character, key, value)
 
@@ -67,7 +62,5 @@ async def update_character(
 @router.delete("/characters/{character_id}", status_code=204)
 async def delete_character(character_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     """Delete a character."""
-    character = await db.get(Character, character_id)
-    if not character:
-        raise HTTPException(status_code=404, detail="Character not found")
+    character = await get_or_404(db, Character, character_id, "Character")
     await db.delete(character)

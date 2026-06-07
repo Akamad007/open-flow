@@ -72,11 +72,22 @@ def task_dispatch_video_chord(self, project_id: str, force: bool = False):
                 len(scene_ids), project_id, force,
             )
 
-            video_chain = chain(
-                task_generate_scene_video.si(project_id, sid, force) for sid in scene_ids
-            )
+            import os
             callback = task_finalize_and_continue.si([], project_id)
-            (video_chain | callback).apply_async()
+            if os.environ.get("PARALLEL_SCENES") == "1" and len(scene_ids) > 1:
+                # Fan all scenes out as a parallel chord so every GPU worker
+                # renders a scene at once (scenes are independent in this mode).
+                header = group(
+                    task_generate_scene_video.si(project_id, sid, force) for sid in scene_ids
+                )
+                logger.info("Parallel scene fan-out: %d scenes across all GPUs", len(scene_ids))
+                chord(header)(callback)
+            else:
+                # Sequential chain — preserves scene-to-scene I2V continuity.
+                video_chain = chain(
+                    task_generate_scene_video.si(project_id, sid, force) for sid in scene_ids
+                )
+                (video_chain | callback).apply_async()
 
         except Ignore:
             raise

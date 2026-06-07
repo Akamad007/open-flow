@@ -39,11 +39,12 @@ def _redis():
 
 def assign_project_gpu(project_id: str, index: int) -> int:
     """Pin a project to GPU ``index`` for all its GPU-side tasks."""
+    idx = int(index)
     try:
-        _redis().set(_ASSIGN_KEY.format(project_id), index, ex=_ASSIGN_TTL)
+        _redis().set(_ASSIGN_KEY.format(project_id), idx, ex=_ASSIGN_TTL)
     except Exception:
         pass
-    return index
+    return idx
 
 
 def assigned_gpu(project_id: str) -> int:
@@ -66,9 +67,10 @@ def pick_free_gpu(busy_project_ids: Iterable[str]) -> Optional[int]:
 
 
 def route_task(name, args=None, kwargs=None, options=None, task=None, **kw):
-    """Celery router: GPU tasks → the project's assigned ``gpu{i}`` queue.
-    Returns None for non-GPU tasks so the static cpu routes apply."""
+    """Celery router: all GPU-side tasks → one shared ``gpu`` queue that EVERY
+    GPU worker (one per card) consumes, so Celery load-balances scene renders
+    across all cards in parallel. Returns None for non-GPU tasks so the static
+    cpu routes apply."""
     if name not in GPU_TASKS:
         return None
-    pid = (args or [None])[0] or (kwargs or {}).get("project_id")
-    return {"queue": gpu_queue(assigned_gpu(str(pid)) if pid else 0)}
+    return {"queue": "gpu"}

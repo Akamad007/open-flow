@@ -3,16 +3,17 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api._common import NOT_FOUND_RESPONSE, get_or_404
 from app.database import get_db
 from app.models.product import Product
 from app.models.project import Project
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 
-router = APIRouter(tags=["products"])
+router = APIRouter(tags=["products"], responses=NOT_FOUND_RESPONSE)
 
 
 @router.get("/projects/{project_id}/products", response_model=List[ProductRead])
@@ -29,8 +30,7 @@ async def create_product(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a product in a project."""
-    if not await db.get(Project, project_id):
-        raise HTTPException(status_code=404, detail="Project not found")
+    await get_or_404(db, Project, project_id, "Project")
     product = Product(project_id=project_id, **data.model_dump())
     db.add(product)
     await db.flush()
@@ -40,9 +40,7 @@ async def create_product(
 
 @router.get("/products/{product_id}", response_model=ProductRead)
 async def get_product(product_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    product = await db.get(Product, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+    product = await get_or_404(db, Product, product_id, "Product")
     return ProductRead.model_validate(product)
 
 
@@ -52,10 +50,7 @@ async def update_product(
     data: ProductUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    product = await db.get(Product, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-
+    product = await get_or_404(db, Product, product_id, "Product")
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(product, key, value)
 
@@ -67,7 +62,5 @@ async def update_product(
 @router.delete("/products/{product_id}", status_code=204)
 async def delete_product(product_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     """Delete a product."""
-    product = await db.get(Product, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+    product = await get_or_404(db, Product, product_id, "Product")
     await db.delete(product)
