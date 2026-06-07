@@ -16,6 +16,7 @@ from app.api.generate._helpers import (
 from app.config import settings
 from app.database import get_db
 from app.models.asset import Asset, AssetType
+from app.models.episode import Episode, EpisodeStatus
 from app.models.project import Project, ProjectStatus
 from app.models.render_job import JobStatus, JobType, RenderJob
 from app.models.scene import Scene, SceneStatus
@@ -95,6 +96,88 @@ async def regenerate_videos(
     return await create_job_and_dispatch(
         project_id, JobType.video_generation, task_dispatch_video_chord, db,
         True,  # force=True
+    )
+
+
+async def _move_aside_and_delete_scene_videos(db: AsyncSession, scene_ids: list) -> int:
+    """Soft-delete (move file aside, then drop the row) every scene_video asset
+    for the given scenes. Never hard-deletes the prior render."""
+    if not scene_ids:
+        return 0
+    assets = (await db.execute(
+        select(Asset).where(Asset.scene_id.in_(scene_ids), Asset.asset_type == AssetType.scene_video)
+    )).scalars().all()
+    for a in assets:
+        if a.file_path:
+            fp = (settings.storage_root.parent / a.file_path).resolve()
+            try:
+                if fp.is_file():
+                    fp.rename(fp.with_name(f"{fp.name}.bak-{a.id}"))
+            except OSError as exc:
+                logger.warning("regenerate-episode: move-aside failed %s: %s", fp, exc)
+        await db.delete(a)
+    return len(assets)
+
+
+@router.post("/episodes/{episode_id}/regenerate-videos", response_model=TriggerResponse, status_code=202)
+async def regenerate_episode_videos(episode_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """Force-regenerate ALL scene videos for ONE episode, leaving other episodes'
+    renders untouched. Soft-deletes this episode's clips, resets its scenes to
+    `prompted`, then dispatches the video chord (sequential last-frame chaining
+    intact, so cross-scene continuity is preserved)."""
+    episode = await db.get(Episode, episode_id)
+    if not episode:
+        raise HTTPException(status_code=404, detail="Episode not found")
+    scene_ids = (await db.execute(
+        select(Scene.id).where(Scene.episode_id == episode_id)
+    )).scalars().all()
+    n = await _move_aside_and_delete_scene_videos(db, scene_ids)
+    await db.execute(
+        sa_update(Scene).where(Scene.episode_id == episode_id).values(status=SceneStatus.prompted)
+    )
+    await db.execute(
+        sa_delete(RenderJob).where(
+            RenderJob.project_id == episode.project_id,
+            RenderJob.job_type == JobType.video_generation,
+            RenderJob.status.in_([JobStatus.queued, JobStatus.running]),
+        )
+    )
+    episode.status = EpisodeStatus.generating
+    project = await db.get(Project, episode.project_id)
+    if project:
+        project.status = ProjectStatus.generating
+    ordered_ids = (await db.execute(
+        select(Scene.id).where(Scene.episode_id == episode_id).order_by(Scene.order_index)
+    )).scalars().all()
+    if not ordered_ids:
+        raise HTTPException(status_code=400, detail="Episode has no scenes")
+    await db.commit()
+    await _clear_redis_stage_locks(episode.project_id)
+
+    # Build the sequential chain HERE rather than via task_dispatch_video_chord:
+    # ordering guarantees each scene sees the previous scene's last_frame for I2V
+    # continuity, independent of any worker's PARALLEL_SCENES setting. The trailing
+    # finalize callback runs audio (skipped if episode.skip_audio) → stitch.
+    from celery import chain as _chain
+    from app.orchestration.tasks.scene_tasks import (
+        task_finalize_and_continue, task_generate_scene_video,
+    )
+    pid = str(episode.project_id)
+    job = RenderJob(project_id=episode.project_id, job_type=JobType.video_generation, status=JobStatus.queued)
+    db.add(job)
+    await db.flush()
+    sig = _chain(
+        *[task_generate_scene_video.si(pid, str(sid), True) for sid in ordered_ids]
+    ) | task_finalize_and_continue.si([], pid)
+    result = sig.apply_async()
+    job.celery_task_id = result.id
+    job.status = JobStatus.running
+    await db.commit()
+    logger.info("regenerate-episode %s: wiped %d clips, dispatched sequential chain of %d scenes",
+                episode_id, n, len(ordered_ids))
+    return TriggerResponse(
+        job_id=str(job.id), celery_task_id=result.id,
+        message=f"Sequential regenerate of {len(ordered_ids)} scenes dispatched (continuity preserved)",
     )
 
 

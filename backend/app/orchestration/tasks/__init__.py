@@ -24,6 +24,7 @@ from app.orchestration.tasks.stage_tasks import (
     task_plan_audio,
     task_plan_scenes,
     task_pregen_images,
+    task_redo_all_prompts,
     task_review_consistency,
     task_stitch,
 )
@@ -49,6 +50,7 @@ __all__ = [
     "task_plan_audio",
     "task_plan_scenes",
     "task_pregen_images",
+    "task_redo_all_prompts",
     "task_review_consistency",
     "task_run_full_pipeline",
     "task_stitch",

@@ -34,6 +34,7 @@ class ScenePromptUpdate(BaseModel):
     scene_breakdown: Optional[str] = None
     continuity_guardrails: Optional[str] = None
     critic_notes: Optional[str] = None
+    lora_plan_json: Optional[str] = None
     approved: Optional[bool] = None
 
 

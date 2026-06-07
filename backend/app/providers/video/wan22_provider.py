@@ -323,9 +323,13 @@ class Wan22VideoProvider(VideoProvider):
 
         gpu_idx = _cuda_device_index()
         from app.utils.gpu import largest_gpu_index
+        # The 12GB card cannot hold the 5B model without aggressive offloading,
+        # so the non-largest card MUST use sequential CPU offload (it OOMs on
+        # plain model offload). This makes it ~3x slower — it's a weak helper,
+        # not a peer of the 16GB card.
         if gpu_idx != largest_gpu_index():
             cmd += ["--sequential-offload"]
-            logger.info("Wan22: small GPU %d — enabling sequential CPU offload", gpu_idx)
+            logger.info("Wan22: small GPU %d — sequential CPU offload (required, ~3x slower)", gpu_idx)
 
         env = os.environ.copy()
         env["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"

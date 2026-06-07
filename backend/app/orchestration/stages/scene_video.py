@@ -334,6 +334,12 @@ async def _assert_prev_scene_chain(
     Re-extracts the PNG if the video exists but the frame file is missing.
     Raises RuntimeError when the previous video itself is missing so the caller
     can pause/requeue rather than render a chain-broken scene."""
+    import os
+    # Parallel mode: render every scene independently (no wait on the previous
+    # scene's video) so all cards can render scenes of one episode at once.
+    # Scenes lose their I2V last-frame seed but the chord fans out across GPUs.
+    if os.environ.get("PARALLEL_SCENES") == "1":
+        return
     explicit_id = getattr(scene, "continuity_prev_scene_id", None)
     if explicit_id is not None:
         prev = await db.get(Scene, explicit_id)

@@ -25,13 +25,14 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api._common import NOT_FOUND_RESPONSE, get_or_404
 from app.config import settings
 from app.database import get_db
 from app.models.asset import Asset, AssetStatus, AssetType
 from app.models.project import Project
 
 logger = logging.getLogger(__name__)
-router = APIRouter(tags=["uploads"])
+router = APIRouter(tags=["uploads"], responses=NOT_FOUND_RESPONSE)
 
 MAX_BYTES = 10 * 1024 * 1024
 NORMALIZED_SIZE = 1024
@@ -44,10 +45,7 @@ def _slug(label: str) -> str:
 
 
 async def _load_project(project_id: uuid.UUID, db: AsyncSession) -> Project:
-    proj = await db.get(Project, project_id)
-    if not proj:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return proj
+    return await get_or_404(db, Project, project_id, "Project")
 
 
 def _normalize_image(file_bytes: bytes) -> Image.Image:

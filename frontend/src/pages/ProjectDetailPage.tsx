@@ -15,6 +15,7 @@ import { UploadsManager } from '../components/UploadsManager'
 import { EpisodesPanel } from '../components/EpisodesPanel'
 import { AddSceneModal } from '../components/AddSceneModal'
 import { SceneContinuityEditor } from '../components/SceneContinuityEditor'
+import { Collapsible } from '../components/Collapsible'
 import type { Project, Scene, Character, Location, AudioPlan, Asset, RenderJob, ProjectImages, EpisodeListItem } from '../types'
 
 type Tab = 'story' | 'scenes' | 'audio' | 'characters' | 'locations' | 'assets' | 'jobs' | 'logs' | 'eval' | 'render' | 'images' | 'uploads'
@@ -881,57 +882,74 @@ export function ProjectDetailPage() {
               {selectedScene.locked && <span>🔒 Locked</span>}
             </div>
 
-            <ScenePromptDetail scene={selectedScene} characters={characters} locations={locations}
-              onSaved={async () => {
-                await load()
-                try { setSelectedScene(await api.getScene(selectedScene.id)) } catch { /* drawer closed */ }
-              }} />
-
-            <SceneContinuityEditor scene={selectedScene} scenes={scenes}
-              onSaved={async () => {
-                await load()
-                try { setSelectedScene(await api.getScene(selectedScene.id)) } catch { /* drawer closed */ }
-              }} />
-
             {(() => {
               const sv = assets.find(a => a.scene_id === selectedScene.id && a.asset_type === 'scene_video')
-              return sv ? (
-                <div className="form-group mt-4">
-                  <label className="label">🎬 Scene Video Asset</label>
-                  <p className="text-xs text-muted">
-                    [{sv.status}] {sv.generation_provider || '—'} ·{' '}
-                    {sv.file_path ? (
-                      <a href={assetUrl(sv)} target="_blank" rel="noopener noreferrer"
-                         style={{ wordBreak: 'break-all' }}>
-                        {sv.file_path}
-                      </a>
-                    ) : '—'}
-                  </p>
-                  <JsonInspector label="metadata_json" raw={sv.metadata_json} />
-                  <JsonInspector label="generation_params_json" raw={sv.generation_params_json} />
-                </div>
-              ) : null
-            })()}
+              return (
+                <>
+                  <Collapsible title="🎬 Video">
+                    {sv?.file_path ? (
+                      <video controls preload="metadata" style={{ width: '100%', borderRadius: 'var(--radius-md)' }}
+                        src={assetUrl(sv)} />
+                    ) : <p className="text-sm text-muted">No video rendered yet.</p>}
+                  </Collapsible>
 
-            <h2 className="section-title">🔒 Lock</h2>
-            <div className="flex gap-2 mt-4">
-              <button className="btn btn-secondary btn-sm"
-                onClick={async () => {
-                  await api.updateScene(selectedScene.id, { locked: !selectedScene.locked })
-                  await load()
-                  setSelectedScene(null)
-                }}>
-                {selectedScene.locked ? '🔓 Unlock' : '🔒 Lock'}
-              </button>
-              <button className="btn btn-primary btn-sm"
-                onClick={async () => {
-                  await api.regenerateScene(selectedScene.id)
-                  setSelectedScene(null)
-                  setTimeout(load, 1000)
-                }}>
-                🔄 Regenerate Video
-              </button>
-            </div>
+                  <Collapsible title="📝 Prompt & Details">
+                    <ScenePromptDetail scene={selectedScene} characters={characters} locations={locations}
+                      onSaved={async () => {
+                        await load()
+                        try { setSelectedScene(await api.getScene(selectedScene.id)) } catch { /* drawer closed */ }
+                      }} />
+                  </Collapsible>
+
+                  <Collapsible title="🔗 Continuity">
+                    <SceneContinuityEditor scene={selectedScene} scenes={scenes}
+                      onSaved={async () => {
+                        await load()
+                        try { setSelectedScene(await api.getScene(selectedScene.id)) } catch { /* drawer closed */ }
+                      }} />
+                  </Collapsible>
+
+                  <Collapsible title="🪵 Logs & Asset">
+                    {sv ? (
+                      <>
+                        <p className="text-xs text-muted">
+                          [{sv.status}] {sv.generation_provider || '—'} ·{' '}
+                          {sv.file_path ? (
+                            <a href={assetUrl(sv)} target="_blank" rel="noopener noreferrer"
+                               style={{ wordBreak: 'break-all' }}>
+                              {sv.file_path}
+                            </a>
+                          ) : '—'}
+                        </p>
+                        <JsonInspector label="metadata_json" raw={sv.metadata_json} />
+                        <JsonInspector label="generation_params_json" raw={sv.generation_params_json} />
+                      </>
+                    ) : <p className="text-sm text-muted">No scene-video asset yet.</p>}
+                  </Collapsible>
+
+                  <Collapsible title="🔒 Lock & Regenerate">
+                    <div className="flex gap-2">
+                      <button className="btn btn-secondary btn-sm"
+                        onClick={async () => {
+                          await api.updateScene(selectedScene.id, { locked: !selectedScene.locked })
+                          await load()
+                          setSelectedScene(null)
+                        }}>
+                        {selectedScene.locked ? '🔓 Unlock' : '🔒 Lock'}
+                      </button>
+                      <button className="btn btn-primary btn-sm"
+                        onClick={async () => {
+                          await api.regenerateScene(selectedScene.id)
+                          setSelectedScene(null)
+                          setTimeout(load, 1000)
+                        }}>
+                        🔄 Regenerate Video
+                      </button>
+                    </div>
+                  </Collapsible>
+                </>
+              )
+            })()}
           </div>{/* end drawer */}
         </>
       )}

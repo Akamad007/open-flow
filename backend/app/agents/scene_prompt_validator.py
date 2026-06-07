@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-WORD_CAP = 320  # validator-reject ceiling. Target is ≈240 (see memory feedback_prompt_word_cap_220 — updated 2026-05-29). User wants richer prompts; cap is permissive because gpt-nano can't reliably stay under 260 when given rich bibles.
+WORD_CAP = 240  # validator-reject ceiling. ~240 words ≈ 310 tokens, under the Wan2.2 UMT5 ~330-350 token cliff (see memory feedback_prompt_word_cap: ≤220 words renders BETTER — 320-word prompts saturate the text encoder and degrade output). Over-cap prompts are hard-truncated at a sentence boundary; a scene is never left prompt-less.
 CANONICAL_NEGATIVES = {
     "text", "subtitles", "watermark", "logo", "letters",
     "static camera", "frozen", "jitter", "flickering",

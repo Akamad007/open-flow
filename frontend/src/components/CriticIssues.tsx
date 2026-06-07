@@ -1,4 +1,5 @@
 import type { RenderJob } from '../types'
+import { Collapsible } from './Collapsible'
 
 interface Issue {
   scene_index?: number
@@ -60,15 +61,17 @@ export function CriticReviewSummary({ jobs }: { jobs: RenderJob[] }) {
     if (!issuesByScene.has(k)) issuesByScene.set(k, [])
     issuesByScene.get(k)!.push(i)
   }
+  const title = (
+    <>
+      <span>🔍 Consistency Critic</span>
+      <span style={{ fontSize: '0.75rem', fontWeight: 400,
+        color: review.approved ? '#10b981' : '#f59e0b' }}>
+        {review.approved ? '✓ approved' : `needs revision · ${review.overall_quality || '?'}`}
+      </span>
+    </>
+  )
   return (
-    <div className="card" style={{ borderLeft: '3px solid #ef4444' }}>
-      <h3 className="card-title">
-        🔍 Consistency Critic
-        <span style={{ marginLeft: 8, fontSize: '0.75rem', fontWeight: 400,
-          color: review.approved ? '#10b981' : '#f59e0b' }}>
-          {review.approved ? '✓ approved' : `needs revision · ${review.overall_quality || '?'}`}
-        </span>
-      </h3>
+    <Collapsible title={title}>
       {(review.issues?.length ?? 0) === 0 ? (
         <p className="text-xs text-muted" style={{ marginTop: 6 }}>No issues raised.</p>
       ) : (
@@ -97,6 +100,6 @@ export function CriticReviewSummary({ jobs }: { jobs: RenderJob[] }) {
           </ul>
         </div>
       )}
-    </div>
+    </Collapsible>
   )
 }

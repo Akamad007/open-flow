@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from pydantic import BaseModel
 
+from app.api._common import NOT_FOUND_RESPONSE, get_or_404
 from app.database import get_db
 from app.models.asset import Asset, AssetStatus, AssetType
 from app.models.episode import Episode
@@ -23,7 +24,7 @@ from app.orchestration._common import get_llm_provider
 from app.orchestration.tasks import task_upload_to_youtube
 from app.schemas.youtube_upload import YouTubeUploadCreate, YouTubeUploadRead
 
-router = APIRouter(tags=["youtube"])
+router = APIRouter(tags=["youtube"], responses=NOT_FOUND_RESPONSE)
 
 _ACTIVE = (YouTubeUploadStatus.queued, YouTubeUploadStatus.uploading)
 
@@ -62,9 +63,7 @@ async def suggest_youtube_metadata(
     episode_id: uuid.UUID, db: AsyncSession = Depends(get_db),
 ):
     """Ask the configured LLM (default: gpt-5.4-nano) for a YouTube title + description."""
-    ep = await db.get(Episode, episode_id)
-    if not ep:
-        raise HTTPException(status_code=404, detail="Episode not found")
+    ep = await get_or_404(db, Episode, episode_id, "Episode")
     project = await db.get(Project, ep.project_id)
 
     story = (ep.original_story_text or "").strip()
@@ -118,9 +117,7 @@ async def upload_to_youtube(
     data: YouTubeUploadCreate,
     db: AsyncSession = Depends(get_db),
 ):
-    ep = await db.get(Episode, episode_id)
-    if not ep:
-        raise HTTPException(status_code=404, detail="Episode not found")
+    ep = await get_or_404(db, Episode, episode_id, "Episode")
 
     # Need a stitched final_render on disk.
     from pathlib import Path
@@ -171,9 +168,7 @@ async def upload_to_youtube(
 async def list_episode_uploads(
     episode_id: uuid.UUID, db: AsyncSession = Depends(get_db),
 ):
-    ep = await db.get(Episode, episode_id)
-    if not ep:
-        raise HTTPException(status_code=404, detail="Episode not found")
+    ep = await get_or_404(db, Episode, episode_id, "Episode")
     rows = (await db.execute(
         select(YouTubeUpload)
         .where(YouTubeUpload.episode_id == episode_id)

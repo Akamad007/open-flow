@@ -47,6 +47,7 @@ celery_app.conf.update(
             "storyvideo.review_consistency":    {"queue": "cpu"},
             "storyvideo.evaluate_project":      {"queue": "cpu"},
             "storyvideo.pipeline_cleanup":      {"queue": "cpu"},
+            "storyvideo.redo_all_prompts":      {"queue": "cpu"},
             "storyvideo.finalize_and_continue": {"queue": "cpu"},
             "storyvideo.stitch":                {"queue": "cpu"},
             # YouTube upload is pure I/O — run on the cpu worker.
