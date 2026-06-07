@@ -158,11 +158,12 @@ def task_generate_audio(self, project_id: str):
 
 
 @celery_app.task(name="storyvideo.stitch", bind=True, max_retries=2, default_retry_delay=10)
-def task_stitch(self, project_id: str):
+def task_stitch(self, project_id: str, episode_id: str | None = None):
     from app.orchestration.pipeline import Pipeline
-    with stage_lock(project_id, "stitch", self.request.id):
+    lock_suffix = f"stitch:{episode_id}" if episode_id else "stitch"
+    with stage_lock(project_id, lock_suffix, self.request.id):
         try:
-            run_async(Pipeline().run_stitching(project_id))
+            run_async(Pipeline().run_stitching(project_id, episode_id))
         except Ignore:
             raise
         except Exception as exc:

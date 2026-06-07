@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.agents.lora_director import LoRADirectorAgent
-from app.agents.visual_director import BATCH_SIZE, VisualDirectorAgent
+from app.agents.visual_director import VisualDirectorAgent
 from app.config import settings
 from app.database import async_session_factory
 from app.models.character import Character
@@ -222,13 +222,12 @@ async def _run_batched(
     critique_feedback: Optional[dict[str, Any]],
     product_links: dict[UUID, dict[str, Any]],
 ) -> None:
-    """Generate prompts in batches of BATCH_SIZE scenes per LLM call.
+    """Prompt scenes in PARALLEL — up to `visual_prompt_concurrency` scenes at a
+    time, each its own single-scene LLM call (settings.visual_prompt_max_retries
+    re-prompt passes; over-cap prompts are truncated, not retried). LLM calls run
+    concurrently; the DB writes that apply the results happen sequentially after."""
+    import asyncio
 
-    Cheaper than single-scene calls (one system prompt + one round-trip
-    per batch) and gives intra-batch continuity for free since the model
-    sees all 6 scenes in one shot. Cross-batch continuity is provided by
-    passing the previous batch's last prompt as `previous_scene.video_prompt`
-    for the first scene of the next batch."""
     if critique_feedback:
         todo = list(enumerate(scenes))
     else:
@@ -238,38 +237,36 @@ async def _run_batched(
         logger.info("All scenes already have prompts, skipping prompt generation")
         return
 
+    conc = max(1, settings.visual_prompt_concurrency)
     logger.info(
-        "Batched prompt gen: %d scenes in %d batch(es) of up to %d",
-        len(todo), (len(todo) + BATCH_SIZE - 1) // BATCH_SIZE, BATCH_SIZE,
+        "Parallel prompt gen: %d scenes, %d at a time (max_retries=%d)",
+        len(todo), conc, settings.visual_prompt_max_retries,
     )
+    sem = asyncio.Semaphore(conc)
 
-    for batch_start in range(0, len(todo), BATCH_SIZE):
-        batch = todo[batch_start:batch_start + BATCH_SIZE]
-        # Use the most-recently-set prompt on the previous scene as the
-        # continuity anchor for the first scene of this batch.
-        contexts = []
-        for idx_in_batch, (i, _scene) in enumerate(batch):
-            prev_prompt = None
-            if idx_in_batch == 0 and i > 0:
-                prev = scenes[i - 1]
-                prev_prompt = prev.prompt.video_prompt if prev.prompt else None
-            contexts.append(
-                _build_context(scenes, i, project, characters,
-                               prev_prompt, critique_feedback, product_links)
-            )
+    async def _one(i: int, scene: Scene):
+        prev = scenes[i - 1] if i > 0 else None
+        prev_prompt = prev.prompt.video_prompt if (prev and prev.prompt) else None
+        ctx = _build_context(scenes, i, project, characters,
+                             prev_prompt, critique_feedback, product_links)
+        async with sem:
+            try:
+                return scene, await agent.run(ctx)
+            except Exception as exc:
+                logger.warning("Scene %d prompt LLM call failed: %s", scene.order_index, exc)
+                return scene, None
 
-        results = await agent.run_batch(contexts)
-        for (i, scene), result in zip(batch, results):
-            if not result or not result.success:
-                logger.warning(
-                    "Scene %d batched gen returned no usable result — applying "
-                    "fallback prompt so the scene still renders (was silently "
-                    "dropped before, which broke stitching)", scene.order_index,
-                )
-                _apply_fallback_prompt(scene, project, db)
-                continue
+    results = await asyncio.gather(*[_one(i, s) for i, s in todo])
+    for scene, result in results:
+        if result and result.success:
             _apply_prompt_result(scene, result, db)
-        await db.flush()
+        else:
+            logger.warning(
+                "Scene %d returned no usable result — applying fallback prompt so "
+                "the scene still renders", scene.order_index,
+            )
+            _apply_fallback_prompt(scene, project, db)
+    await db.flush()
 
 
 async def _assign_loras(scenes: list[Scene], db: AsyncSession) -> None:

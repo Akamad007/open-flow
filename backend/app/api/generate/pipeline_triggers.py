@@ -181,6 +181,31 @@ async def regenerate_episode_videos(episode_id: uuid.UUID, db: AsyncSession = De
     )
 
 
+@router.post("/episodes/{episode_id}/stitch", response_model=TriggerResponse, status_code=202)
+async def stitch_episode(episode_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """Stitch ONE specific episode (silent if its skip_audio is set), regardless
+    of which episode is 'active' or the project's status. Lets a multi-episode
+    project stitch each episode independently without the project-wide guard."""
+    episode = await db.get(Episode, episode_id)
+    if not episode:
+        raise HTTPException(status_code=404, detail="Episode not found")
+    await _clear_redis_stage_locks(episode.project_id)
+    from app.orchestration.tasks.stage_tasks import task_stitch
+    job = RenderJob(
+        project_id=episode.project_id, job_type=JobType.stitching, status=JobStatus.queued,
+    )
+    db.add(job)
+    await db.flush()
+    result = task_stitch.delay(str(episode.project_id), str(episode_id))
+    job.celery_task_id = result.id
+    job.status = JobStatus.running
+    await db.commit()
+    return TriggerResponse(
+        job_id=str(job.id), celery_task_id=result.id,
+        message=f"Stitch dispatched for episode {episode_id}",
+    )
+
+
 _ACTION_ASSET_TYPES = (
     AssetType.scene_action_seq,
     AssetType.scene_action,

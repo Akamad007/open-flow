@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     )
 
     # ── Database ──
-    database_url: str = "postgresql+asyncpg://storyvideouser:storyvideopass@localhost:5432/storyvideo"
-    database_url_sync: str = "postgresql://storyvideouser:storyvideopass@localhost:5432/storyvideo"
+    database_url: str = "postgresql+asyncpg://openflow:openflow@localhost:5432/openflow"
+    database_url_sync: str = "postgresql://openflow:openflow@localhost:5432/openflow"
 
     # ── Redis ──
     redis_url: str = "redis://localhost:6379/0"
@@ -36,18 +36,26 @@ class Settings(BaseSettings):
     storage_root: Path = Path(__file__).parent.parent / "storage"
 
     # ── Secrets Manager (runtime secret fetching) ──
-    secrets_manager_url: str = "http://127.0.0.1:8010"
+    secrets_manager_url: str = ""  # optional vault; empty → env-var fallback
     secrets_manager_token: str = ""  # DRF auth token — set via SECRETS_MANAGER_TOKEN env var
 
     # ── LLM Provider ──
     llm_provider: str = "openai"  # openai | stub
     llm_api_base: str = "https://api.openai.com/v1"
     llm_api_key: str = ""  # Fallback only — prefer secrets-manager. Set via LLM_API_KEY env var
-    llm_model: str = "gpt-5.4-nano"
+    llm_model: str = "gpt-4o-mini"
     # Stronger model used by the visual_director (per-scene cinematography prompts).
     # Spending more on tokens here is net-positive because each prompt drives
     # ~$2 of GPU work downstream. Override via LLM_STRONG_MODEL env var.
-    llm_strong_model: str = "gpt-5.4-nano"
+    llm_strong_model: str = "gpt-4o-mini"
+
+    # ── Visual director (per-scene prompt generation) ──
+    # Re-prompt passes per scene on a *real* validation failure (over-cap words
+    # are truncated immediately, not retried). Override via VISUAL_PROMPT_MAX_RETRIES.
+    visual_prompt_max_retries: int = 1
+    # Scenes prompted concurrently in one prompt-generation pass (each its own
+    # LLM call). Override via VISUAL_PROMPT_CONCURRENCY.
+    visual_prompt_concurrency: int = 5
 
     # ── Video Provider ──
     video_provider: str = "stub"  # ltx | wan22 | stub

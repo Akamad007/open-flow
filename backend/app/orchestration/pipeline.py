@@ -66,8 +66,8 @@ class Pipeline:
     async def run_audio_generation(self, project_id: str) -> None:
         await audio_generation.run(project_id)
 
-    async def run_stitching(self, project_id: str) -> None:
-        await stitching.run(project_id)
+    async def run_stitching(self, project_id: str, episode_id: str | None = None) -> None:
+        await stitching.run(project_id, episode_id)
 
     async def generate_single_scene(
         self, project_id: str, scene_id: str, force: bool = False,
