@@ -66,12 +66,5 @@ run_queue_*.py
 # Docker env (user-specific, may hold keys); created from .env.docker.example
 .env.docker
 
-# Temporary compat symlinks → engines/ (keep the live render's in-memory path
-# valid; remove these once the running render finishes). Real files live in engines/.
-/wan22_generate.py
-/ltx_generate.py
-/wan_generate.py
-/chatterbox_generate.py
-
 # Personal-content example (kept locally, not shipped)
 examples/scripts/reprompt_sadhguru.py
