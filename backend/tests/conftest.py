@@ -31,6 +31,8 @@ from testcontainers.postgres import PostgresContainer  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT.parent))
+# Standalone GPU engine scripts (chatterbox_generate, wan22_generate, …) live here.
+sys.path.insert(0, str(ROOT.parent / "engines"))
 
 
 # ── Block outbound HTTP + subprocess ──────────────────────────────────────────
