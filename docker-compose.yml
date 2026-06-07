@@ -27,6 +27,20 @@ services:
       timeout: 3s
       retries: 5
 
+  # ── Schema migration (one-shot; runs before backend/worker) ──
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    command: alembic upgrade head
+    environment:
+      DATABASE_URL: postgresql+asyncpg://storyvideouser:storyvideopass@db:5432/storyvideo
+      DATABASE_URL_SYNC: postgresql://storyvideouser:storyvideopass@db:5432/storyvideo
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
   # ── Backend API ──
   backend:
     build:
@@ -66,13 +80,16 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # ── Celery Worker ──
   worker:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    command: celery -A app.orchestration.tasks:celery_app worker --loglevel=info --concurrency=2
+    # Consume both queues: CPU/LLM stages route to `cpu`, render tasks to `gpu0`.
+    command: celery -A app.orchestration.tasks:celery_app worker -Q cpu,gpu0 --loglevel=info --concurrency=2
     environment:
       DATABASE_URL: postgresql+asyncpg://storyvideouser:storyvideopass@db:5432/storyvideo
       DATABASE_URL_SYNC: postgresql://storyvideouser:storyvideopass@db:5432/storyvideo
@@ -101,6 +118,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # ── Frontend ──
   frontend:
@@ -109,6 +128,9 @@ services:
       dockerfile: Dockerfile.frontend
     ports:
       - "5173:5173"
+    environment:
+      # Reach the API by service name inside the compose network.
+      VITE_API_PROXY: http://backend:8000
     volumes:
       - ./frontend:/app
       - /app/node_modules
