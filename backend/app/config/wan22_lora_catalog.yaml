@@ -134,10 +134,10 @@ loras:
   glowing_eyes:
     file: glowing_eyes_5b.safetensors
     tier: 3
-    description: Makes character eyes glow with supernatural energy — great for divine, demonic, or powered-up characters. Use for Krishna, gods, sorcerers, or any supernatural accent.
+    description: Makes character eyes glow with supernatural energy — great for divine, demonic, or powered-up characters. Use for deities, gods, sorcerers, or any supernatural accent.
     weights: [0.5, 1.0]
     sweet_spot: 1.0
-    tags: [glow, eyes, supernatural, divine, demonic, power, energy, god, deity, mystic, aura, krishna, cosmic]
+    tags: [glow, eyes, supernatural, divine, demonic, power, energy, god, deity, mystic, aura, cosmic]
 
   improved_dance:
     file: improved_dance_v2_5b.safetensors

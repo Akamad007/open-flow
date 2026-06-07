@@ -49,10 +49,10 @@ You MUST output a boolean `continues_from_previous` field for EVERY scene. This 
 If ANY of those is false, you MUST emit `continues_from_previous: false`. When in doubt, false. False is the safe choice — true forces the model to inherit the previous frame's pixels, which DESTROYS the new scene if the location or lighting changes.
 
 Examples:
-  - Scene A: "Jaggi standing at window" → Scene B: "Jaggi still standing at window, now lifting tea cup" → `true` (same room, same pose, micro-action only).
-  - Scene A: "Jaggi inside dim ochre room" → Scene B: "Jaggi outside on bright dusty lane" → `false` (location + lighting change).
-  - Scene A: "Naren bows at the cell mat" → Scene B: "Naren walks through courtyard at sunset" → `false` (location + pose + time change).
-  - Scene A: "Buddha sits under Bodhi tree dawn" → Scene B: "Buddha still under Bodhi tree, sun now midday" → `false` (lighting change, even if same place).
+  - Scene A: "A man standing at a window" → Scene B: "the man still standing at the window, now lifting tea cup" → `true` (same room, same pose, micro-action only).
+  - Scene A: "A man inside a dim ochre room" → Scene B: "the man outside on a bright dusty lane" → `false` (location + lighting change).
+  - Scene A: "A monk bows at the cell mat" → Scene B: "the monk walks through a courtyard at sunset" → `false` (location + pose + time change).
+  - Scene A: "A monk sits under a great tree at dawn" → Scene B: "the monk still under the tree, sun now midday" → `false` (lighting change, even if same place).
 
 ══════════════════════════════════════════════════════
 WORD BUDGET — RICHER IS BETTER

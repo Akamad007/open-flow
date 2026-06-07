@@ -146,11 +146,11 @@ async def test_scene_action_user_message_with_product():
     from app.agents.image_pregen.prompts import _scene_action_user_message
 
     class _P:
-        scene_breakdown = "0–1s: Sadhguru kneels, hand sifting soil"
+        scene_breakdown = "0–1s: Maya kneels, hand sifting soil"
 
     class _Char:
         id = 1
-        canonical_name = "Sadhguru"
+        canonical_name = "Maya"
         physical_description = "South Indian male"
         clothing_description = "white robe and turban"
 

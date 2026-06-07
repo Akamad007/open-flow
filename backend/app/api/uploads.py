@@ -151,7 +151,7 @@ async def upload_character(
 @router.post("/projects/{project_id}/uploads/product", status_code=201)
 async def upload_product(
     project_id: uuid.UUID,
-    label: str = Form(..., description="Product name as referenced in the story (e.g. 'tan Birkin handbag')"),
+    label: str = Form(..., description="Product name as referenced in the story (e.g. 'tan leather handbag')"),
     file: UploadFile = File(..., description="Hero shot of the product (ideally on a plain background)"),
     db: AsyncSession = Depends(get_db),
 ):

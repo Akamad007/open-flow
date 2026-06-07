@@ -35,7 +35,7 @@ class _StubLLM:
     async def complete_json(self, *_, **__):
         return {
             "portrait_prompt": (
-                "a bust shot of Sadhguru, head and shoulders close-up, "
+                "a bust shot of Maya, head and shoulders close-up, "
                 "white robe and turban, long grey beard, calm expression, "
                 "soft studio lighting, 35mm grain"
             ),
@@ -46,7 +46,7 @@ class _StubLLM:
 
 
 CHAR = SimpleNamespace(
-    canonical_name="Sadhguru",
+    canonical_name="Maya",
     physical_description=(
         "South Indian male in his 60s, long grey beard, calm gaze, weathered skin"
     ),
@@ -59,7 +59,7 @@ CHAR = SimpleNamespace(
 async def main() -> int:
     out_dir = ROOT / "storage" / "smoke_portrait_fix"
     out_dir.mkdir(parents=True, exist_ok=True)
-    portrait_path = out_dir / "sadhguru.png"
+    portrait_path = out_dir / "maya.png"
     if portrait_path.exists():
         portrait_path.unlink()
 

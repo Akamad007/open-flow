@@ -15,10 +15,19 @@
 
 set -u
 
-REPO=/home/akash/PycharmProjects/video-app
-SECRETS=/home/akash/PycharmProjects/secrets-manager
-PY_APP=/home/akash/.pyenv/versions/video-app/bin/python
-PY_SECRETS=/home/akash/PycharmProjects/secrets-manager/venv/bin/python
+# Portable: derive paths from the script location; override via env.
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+SECRETS="${SECRETS_MANAGER_DIR:-$(dirname "$REPO")/secrets-manager}"
+# Prefer $PYTHON_PATH, then the `video-app` pyenv if present, else python3.
+PY_APP="${PYTHON_PATH:-}"
+if [ -z "$PY_APP" ]; then
+    if command -v pyenv >/dev/null 2>&1 && pyenv prefix video-app >/dev/null 2>&1; then
+        PY_APP="$(pyenv prefix video-app)/bin/python"
+    else
+        PY_APP="$(command -v python3)"
+    fi
+fi
+PY_SECRETS="$SECRETS/venv/bin/python"
 
 start_infra() {
     cd "$REPO"
@@ -146,7 +155,9 @@ case "${1:-start}" in
     status) status_all ;;
     start|*)
         start_infra
-        start_secrets
+        # Optional vault — only if the secrets-manager repo is present; otherwise
+        # keys come from env vars (see .env.example).
+        [ -d "$SECRETS" ] && start_secrets || echo "• secrets-manager absent — using env vars for keys"
         start_backend
         start_celery
         start_frontend

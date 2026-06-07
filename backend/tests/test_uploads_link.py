@@ -21,7 +21,7 @@ pytestmark = pytest.mark.asyncio
     ("Alice protagonist", "Alice", True),
     ("Alice", "Alice protagonist", True),
     ("ALICE", "alice", True),
-    ("tan Birkin handbag", "Birkin Handbag", True),
+    ("tan leather handbag", "Leather Handbag", True),
     ("alice", "bob", False),
     ("", "Alice", False),
     ("Alice", "", False),
@@ -95,8 +95,8 @@ async def test_link_character_uploads_no_match_no_change(db_session):
 
 async def test_link_product_uploads_sets_user_uploaded_path(db_session):
     p = await _new_project(db_session)
-    asset = await _new_upload_asset(db_session, p.id, AssetType.product_ref, "tan Birkin handbag")
-    prod = Product(project_id=p.id, canonical_name="Birkin Handbag",
+    asset = await _new_upload_asset(db_session, p.id, AssetType.product_ref, "tan leather handbag")
+    prod = Product(project_id=p.id, canonical_name="Leather Handbag",
                    user_uploaded_path=None, reference_image_path=None)
     db_session.add(prod)
     await db_session.commit()
