@@ -1,12 +1,16 @@
 """
-Secrets Manager client — fetches secrets at runtime from the
-secrets-manager Django app. NEVER stores secrets on disk.
+Secrets client — resolves secrets at runtime, newer wins:
 
-The secrets-manager must be running and accessible at SECRETS_MANAGER_URL.
-Auth via DRF Token (Authorization: Token <token>).
+  1. in-memory cache (a previous successful lookup),
+  2. the OPTIONAL secrets-manager vault (SECRETS_MANAGER_URL + _TOKEN), if configured,
+  3. environment variables — so the vault is entirely optional.
+
+Nothing is written to disk. If the vault isn't configured or can't be reached,
+secrets are read straight from the environment (e.g. OPENAI_API_KEY).
 """
 
 import logging
+import os
 from typing import Optional
 
 import httpx
@@ -15,97 +19,74 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# In-memory cache — populated once at startup, lives only in process memory
+# In-memory cache — lives only in process memory
 _cache: dict[str, str] = {}
 
 
+def _vault_configured() -> bool:
+    return bool(settings.secrets_manager_url and settings.secrets_manager_token)
+
+
+def _from_env(key: str) -> Optional[str]:
+    """Fallback: read the secret straight from the environment."""
+    value = os.environ.get(key)
+    if value:
+        _cache[key] = value
+        logger.info("Secret '%s' resolved from env var", key)
+    return value
+
+
+def _vault_url(key: str) -> str:
+    return f"{settings.secrets_manager_url.rstrip('/')}/api/secrets/{key}/"
+
+
 async def get_secret(key: str, use_cache: bool = True) -> Optional[str]:
-    """
-    Fetch a secret by key from the secrets-manager API.
-
-    Args:
-        key: Secret key (e.g. OPENAI_API_KEY)
-        use_cache: If True, return cached value if available
-
-    Returns:
-        Plaintext secret value, or None if not found.
-    """
+    """Resolve a secret: cache → vault (if configured) → env var."""
     key = key.upper()
-
     if use_cache and key in _cache:
         return _cache[key]
-
-    url = f"{settings.secrets_manager_url.rstrip('/')}/api/secrets/{key}/"
-    token = settings.secrets_manager_token
-
-    if not token:
-        logger.warning("SECRETS_MANAGER_TOKEN not set — cannot fetch secrets")
-        return None
-
+    if not _vault_configured():
+        return _from_env(key)
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(
-                url,
-                headers={"Authorization": f"Token {token}"},
+                _vault_url(key),
+                headers={"Authorization": f"Token {settings.secrets_manager_token}"},
             )
-
-            if resp.status_code == 404:
-                logger.warning("Secret '%s' not found in vault", key)
-                return None
-
+        if resp.status_code != 404:
             resp.raise_for_status()
-            data = resp.json()
-            value = data.get("value")
-
+            value = resp.json().get("value")
             if value:
                 _cache[key] = value
-                logger.info("Fetched secret '%s' from vault (cached in memory)", key)
-
-            return value
-
-    except httpx.ConnectError:
-        logger.error("Cannot connect to secrets-manager at %s", settings.secrets_manager_url)
-        return None
+                logger.info("Fetched secret '%s' from vault (in-memory only)", key)
+                return value
     except Exception as e:
-        logger.exception("Failed to fetch secret '%s': %s", key, e)
-        return None
+        logger.warning("Vault lookup of '%s' failed (%s) — falling back to env", key, e)
+    return _from_env(key)
 
 
 def get_secret_sync(key: str, use_cache: bool = True) -> Optional[str]:
-    """Synchronous version for use during startup / config loading."""
+    """Synchronous version (startup / config loading). cache → vault → env var."""
     key = key.upper()
-
     if use_cache and key in _cache:
         return _cache[key]
-
-    url = f"{settings.secrets_manager_url.rstrip('/')}/api/secrets/{key}/"
-    token = settings.secrets_manager_token
-
-    if not token:
-        return None
-
+    if not _vault_configured():
+        return _from_env(key)
     try:
         resp = httpx.get(
-            url,
-            headers={"Authorization": f"Token {token}"},
+            _vault_url(key),
+            headers={"Authorization": f"Token {settings.secrets_manager_token}"},
             timeout=10.0,
         )
-
-        if resp.status_code == 404:
-            return None
-
-        resp.raise_for_status()
-        data = resp.json()
-        value = data.get("value")
-
-        if value:
-            _cache[key] = value
-
-        return value
-
+        if resp.status_code != 404:
+            resp.raise_for_status()
+            value = resp.json().get("value")
+            if value:
+                _cache[key] = value
+                return value
     except Exception as e:
-        logger.error("Sync fetch of secret '%s' failed: %s", key, e)
-        return None
+        logger.warning("Vault lookup of '%s' failed (%s) — falling back to env", key, e)
+    return _from_env(key)
 
 
 def clear_cache():
