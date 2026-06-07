@@ -7,7 +7,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import delete as sa_delete, func, select, update as sa_update
+from sqlalchemy import delete as sa_delete, func, or_, select, update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.generate._helpers import (
@@ -204,6 +204,41 @@ async def stitch_episode(episode_id: uuid.UUID, db: AsyncSession = Depends(get_d
         job_id=str(job.id), celery_task_id=result.id,
         message=f"Stitch dispatched for episode {episode_id}",
     )
+
+
+@router.delete("/episodes/{episode_id}/render-assets", status_code=200)
+async def delete_episode_render_assets(episode_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """Soft-delete every scene_video + final_render asset for ONE episode: move
+    each file aside to .bak-{id} (reversible — never destroyed) and drop the row.
+    Audio + other episodes' assets are left untouched."""
+    episode = await db.get(Episode, episode_id)
+    if not episode:
+        raise HTTPException(status_code=404, detail="Episode not found")
+    scene_ids = (await db.execute(
+        select(Scene.id).where(Scene.episode_id == episode_id)
+    )).scalars().all()
+    types = [AssetType.scene_video, AssetType.final_render]
+    assets = (await db.execute(
+        select(Asset).where(
+            Asset.asset_type.in_(types),
+            or_(Asset.episode_id == episode_id, Asset.scene_id.in_(scene_ids)),
+        )
+    )).scalars().all()
+    removed: dict[str, int] = {}
+    for a in assets:
+        if a.file_path:
+            fp = (settings.storage_root.parent / a.file_path).resolve()
+            try:
+                if fp.is_file():
+                    fp.rename(fp.with_name(f"{fp.name}.bak-{a.id}"))
+            except OSError as exc:
+                logger.warning("delete-render-assets: move-aside failed %s: %s", fp, exc)
+        key = a.asset_type.value
+        removed[key] = removed.get(key, 0) + 1
+        await db.delete(a)
+    await db.commit()
+    logger.info("Soft-deleted %d render assets for episode %s: %s", len(assets), episode_id, removed)
+    return {"episode_id": str(episode_id), "removed_total": len(assets), "removed": removed}
 
 
 _ACTION_ASSET_TYPES = (

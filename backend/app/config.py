@@ -68,11 +68,11 @@ class Settings(BaseSettings):
     # if the path doesn't exist.
     wan22_motion_model_path: str = str(_MODELS_ROOT / "wan22" / "FrameINO-5B-MotionINO-v1.6")
     wan22_lora_dir: str = str(_MODELS_ROOT / "wan22" / "loras" / "5b")
-    wan22_height: int = 384
-    wan22_width: int = 640
+    wan22_height: int = 288   # reduced from 384 for speed (user pref 2026-06-06); keeps 5:3
+    wan22_width: int = 480    # reduced from 640 for speed (user pref 2026-06-06); keeps 5:3
     wan22_num_frames: int = 121  # 5.04s @ 24fps
     wan22_fps: int = 24
-    wan22_inference_steps: int = 140   # flat 140 for all scenes (user pref 2026-05-27); motion bump is now 0
+    wan22_inference_steps: int = 180   # raised to 180 for quality (user pref 2026-06-06)
     wan22_guidance_scale: float = 5.0
     # Degrain + CodeFormer face-relock the last-frame I2V seed between scenes so
     # grain/identity-drift don't compound photocopy-of-a-photocopy down the chain.
