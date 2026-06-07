@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from pathlib import Path
 
 from sqlalchemy import select
@@ -11,8 +12,8 @@ from sqlalchemy import select
 from app.agents.stitching_agent import StitchingAgent
 from app.database import async_session_factory
 from app.models.asset import Asset, AssetStatus, AssetType
-from app.models.episode import EpisodeStatus
-from app.models.project import ProjectStatus
+from app.models.episode import Episode, EpisodeStatus
+from app.models.project import Project, ProjectStatus
 from app.models.render_job import JobStatus, JobType, RenderJob
 from app.models.scene import Scene
 from app.orchestration._common import assert_project_active, get_stitching_provider
@@ -99,12 +100,23 @@ async def _verify_files_on_disk(db, episode_id, skip_audio: bool = False) -> Non
         raise RuntimeError("run_stitching: audio file not found on disk.")
 
 
-async def run(project_id: str) -> None:
+async def run(project_id: str, episode_id: str | None = None) -> None:
     async with async_session_factory() as db:
-        project = await assert_project_active(db, project_id, "stitching")
-        episode = await resolve_active_episode(db, project_id)
-        if episode is None:
-            raise RuntimeError(f"No episode for project {project_id}")
+        if episode_id:
+            # Episode-scoped stitch: target THIS episode regardless of which is
+            # "active" or the project's status (lets us stitch a second episode
+            # after the first marked the project complete).
+            project = await db.get(Project, uuid.UUID(project_id))
+            if project is None:
+                raise RuntimeError(f"Project {project_id} not found")
+            episode = await db.get(Episode, uuid.UUID(episode_id))
+            if episode is None or str(episode.project_id) != project_id:
+                raise RuntimeError(f"Episode {episode_id} not in project {project_id}")
+        else:
+            project = await assert_project_active(db, project_id, "stitching")
+            episode = await resolve_active_episode(db, project_id)
+            if episode is None:
+                raise RuntimeError(f"No episode for project {project_id}")
 
         job = RenderJob(
             project_id=project.id, job_type=JobType.stitching,

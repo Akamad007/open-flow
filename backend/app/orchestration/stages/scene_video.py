@@ -298,7 +298,7 @@ def _select_conditioning(
        canvases drive Wan22 output instead of pure T2V drift.
     2. If this scene has its own action stills (LTX path), USE THEM — don't let
        last_frame silently override (that caused scenes 2-4 in the Save Soil
-       run to all render the same Sadhguru-walking shot).
+       run to all render the same Maya-walking shot).
     3. If no stills but we have background + character, condition on bg + char.
     4. last_frame is a fallback ONLY when nothing else is available — and it's
        still passed to LTX as `--condition-image` separately even when not
@@ -325,6 +325,15 @@ def _select_conditioning(
 
 async def _delete_existing_asset(db: AsyncSession, asset: Asset) -> None:
     logger.info("Scene %s force-regenerating, deleting old asset %s", asset.scene_id, asset.id)
+    # Soft-delete: move the prior render aside so the new render doesn't overwrite
+    # it (never destroy a user artifact). The .bak file is reversible.
+    if asset.file_path:
+        fp = (settings.storage_root.parent / asset.file_path).resolve()
+        try:
+            if fp.is_file():
+                fp.rename(fp.with_name(f"{fp.name}.bak-{asset.id}"))
+        except OSError as exc:
+            logger.warning("force-regen: move-aside failed %s: %s", fp, exc)
     await db.delete(asset)
     await db.flush()
 

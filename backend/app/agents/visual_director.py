@@ -13,8 +13,9 @@ from typing import Any
 
 from app.agents.base import AgentResult, BaseAgent
 from app.agents.scene_prompt_validator import WORD_CAP, validate_scene_prompt
+from app.config import settings
 
-MAX_RETRIES = 5
+MAX_RETRIES = settings.visual_prompt_max_retries  # default 1 (over-cap is truncated, not retried)
 BATCH_SIZE = 50
 
 
@@ -79,11 +80,11 @@ _IMAGE_PROVIDED_RULE = (
     "1–2 most distinctive traits — repeated on every beat.\n"
     "- DIM 2 CONTENT line: \"[Style]. [Name] the [short-tag] in [Environment]\n"
     "  [Action].\" Example tags:\n"
-    "    \"Bal Krishna the chubby sky-blue toddler with peacock-feather topknot\"\n"
+    "    \"a chubby sky-blue toddler hero with a feathered topknot\"\n"
     "    \"Tom the lanky blue-grey cat\"  \"Brushy the bright blue toothbrush mascot\"\n"
     "- Repeat the same short-tag on EVERY per-second beat — never collapse to\n"
     "  pronoun or name-only (\"she does X\", \"Tom does X\"). Always include the\n"
-    "  color/material anchor (\"sky-blue Krishna\", \"blue-grey Tom\").\n"
+    "  color/material anchor (\"sky-blue hero\", \"blue-grey Tom\").\n"
     "- DO NOT add new appearance details not already in the canonical\n"
     "  character block — don't invent clothing/colors. Pick the 1–2 most\n"
     "  distinctive traits and repeat them verbatim.\n"
