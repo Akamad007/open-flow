@@ -9,7 +9,7 @@ OpenFlow is in **alpha** (`0.1.x`). Security fixes are applied to the latest
 
 **Do not open a public issue for security problems.**
 
-Email **akashdeshpande2000@gmail.com** with:
+Email **diesel.4request@icloud.com** with:
 
 - a description of the issue and its impact,
 - steps to reproduce (or a proof of concept),
