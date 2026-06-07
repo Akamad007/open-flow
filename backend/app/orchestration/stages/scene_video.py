@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import os
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -377,10 +379,44 @@ async def _assert_prev_scene_chain(
         return
     ep_dir.mkdir(parents=True, exist_ok=True)
     await orchestrator._extract_last_frame(prev_asset.file_path, str(expected))
+    await _clean_seed_frame(str(expected))
     logger.info(
         "Recovered missing last_frame for scene %d -> %s",
         prev.order_index, expected,
     )
+
+
+_CLEAN_SEED_SCRIPT = (
+    Path(__file__).resolve().parents[4] / "scripts" / "clean_seed_frame.py"
+)
+
+
+async def _clean_seed_frame(frame_path: str) -> None:
+    """Degrain + CodeFormer face-relock the last-frame I2V seed in place so grain
+    and identity drift don't compound down the chain. Non-fatal: on any failure
+    the raw extracted frame is left untouched."""
+    if not settings.wan22_clean_seed_frame:
+        return
+    if not (_CLEAN_SEED_SCRIPT.exists() and Path(frame_path).exists()):
+        return
+    tmp = f"{frame_path}.clean.png"
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            settings.gpu_python_path, str(_CLEAN_SEED_SCRIPT),
+            frame_path, tmp, str(settings.wan22_clean_seed_fidelity),
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await asyncio.wait_for(proc.communicate(), timeout=240)
+        if proc.returncode == 0 and Path(tmp).exists():
+            os.replace(tmp, frame_path)
+            logger.info("Cleaned seed frame (degrain + face-relock) → %s", frame_path)
+        else:
+            logger.warning("Seed-clean failed (rc=%s): %s — keeping raw seed",
+                           proc.returncode, (stderr.decode()[-300:] if stderr else "?"))
+            Path(tmp).unlink(missing_ok=True)
+    except Exception as exc:
+        logger.warning("Seed-clean error: %s — keeping raw seed", exc)
+        Path(tmp).unlink(missing_ok=True)
 
 
 async def _extract_last_frame_for_next(
@@ -393,6 +429,7 @@ async def _extract_last_frame_for_next(
     frame_dir.mkdir(parents=True, exist_ok=True)
     frame_path = str(frame_dir / f"scene_{scene.order_index:03d}_last_frame.png")
     await orchestrator._extract_last_frame(asset.file_path, frame_path)
+    await _clean_seed_frame(frame_path)
     logger.info("Extracted last frame for scene %d → %s", scene.order_index, frame_path)
     if scene.order_index == 0:
         first_path = str(frame_dir / "scene_000_first_frame.png")

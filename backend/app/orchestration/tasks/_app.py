@@ -30,7 +30,13 @@ celery_app.conf.update(
     task_max_retries=3,
     result_expires=86400,
     chord_propagates=True,
-    task_default_queue="gpu0",          # safety fallback for any unrouted task
+    # CRITICAL: with acks_late, the redis broker re-delivers any task that runs
+    # longer than visibility_timeout to a SECOND worker — two copies then run
+    # concurrently (caused the ix_scene_prompts_scene_id duplicate-key crash).
+    # Default is 3600s; set it well above the longest possible task.
+    broker_transport_options={"visibility_timeout": 43200},  # 12h
+    task_reject_on_worker_lost=False,   # don't silently re-run a genuinely lost task
+    task_default_queue="cpu",           # unrouted tasks land on the safe CPU worker, never a GPU card
     # Multi-GPU split. GPU-side tasks route per-project to the project's
     # assigned `gpu{i}` queue via `route_task` (one worker pinned per card),
     # so N projects render on N GPUs in parallel. CPU/LLM stages stay on the
@@ -47,7 +53,7 @@ celery_app.conf.update(
             "storyvideo.review_consistency":    {"queue": "cpu"},
             "storyvideo.evaluate_project":      {"queue": "cpu"},
             "storyvideo.pipeline_cleanup":      {"queue": "cpu"},
-            "storyvideo.redo_all_prompts":      {"queue": "cpu"},
+            "storyvideo.episode_prompts":       {"queue": "cpu"},
             "storyvideo.finalize_and_continue": {"queue": "cpu"},
             "storyvideo.stitch":                {"queue": "cpu"},
             # YouTube upload is pure I/O — run on the cpu worker.

@@ -66,6 +66,10 @@ class Settings(BaseSettings):
     wan22_fps: int = 24
     wan22_inference_steps: int = 140   # flat 140 for all scenes (user pref 2026-05-27); motion bump is now 0
     wan22_guidance_scale: float = 5.0
+    # Degrain + CodeFormer face-relock the last-frame I2V seed between scenes so
+    # grain/identity-drift don't compound photocopy-of-a-photocopy down the chain.
+    wan22_clean_seed_frame: bool = True
+    wan22_clean_seed_fidelity: float = 0.5  # CodeFormer: 0=max quality, 1=max fidelity
     ltx_model_id: str = "Lightricks/LTX-Video"      # HF repo (all checkpoints live here)
     ltx_model_file: str = "ltxv-13b-0.9.8-dev-fp8.safetensors"  # dev fp8 — supports CFG, stronger text adherence
     ltx_device: str = "cuda"                         # single-GPU FP8 + sequential CPU offload (cuda:0)

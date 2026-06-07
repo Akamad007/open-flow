@@ -516,14 +516,24 @@ class VisualDirectorAgent(BaseAgent):
                 data["validator_errors"] = []
                 results[pos] = AgentResult(success=True, data=data)
             else:
-                self.logger.warning(
-                    "Batched: scene %s failed validation (%s) — queued for parallel retry",
-                    idx, "; ".join(report.errors),
-                )
-                ctx_retry = dict(ctx)
-                ctx_retry["validator_errors"] = report.errors
-                retry_positions.append(pos)
-                retry_ctxs.append(ctx_retry)
+                # Over-cap-only: truncate inline — no extra LLM call. Only a
+                # real validation error (style/beats/negatives) is worth a retry.
+                vp = data.get("video_prompt", "") or ""
+                cap_only = bool(report.errors) and all("words; cap is" in e for e in report.errors)
+                if cap_only and vp:
+                    data["video_prompt"] = _truncate_to_word_cap(vp, WORD_CAP)
+                    data["validator_errors"] = []
+                    results[pos] = AgentResult(success=True, data=data)
+                    self.logger.info("Batched: scene %s truncated to cap inline (no retry)", idx)
+                else:
+                    self.logger.warning(
+                        "Batched: scene %s failed validation (%s) — queued for parallel retry",
+                        idx, "; ".join(report.errors),
+                    )
+                    ctx_retry = dict(ctx)
+                    ctx_retry["validator_errors"] = report.errors
+                    retry_positions.append(pos)
+                    retry_ctxs.append(ctx_retry)
 
         # Pass 2: run ALL single-scene retries CONCURRENTLY via asyncio.gather.
         # Each self.run() makes its own LLM call with its own retry loop, so this
@@ -602,6 +612,19 @@ class VisualDirectorAgent(BaseAgent):
                 return AgentResult(success=True, data=last_result)
 
             validator_errors = report.errors
+            # Over-cap word count is the one error retrying does NOT fix — the LLM
+            # keeps overshooting and we truncate anyway. So truncate NOW instead of
+            # burning MAX_RETRIES LLM calls. (Only when the cap is the ONLY error.)
+            video_prompt = last_result.get("video_prompt", "") or ""
+            cap_only = bool(validator_errors) and all("words; cap is" in e for e in validator_errors)
+            if cap_only and video_prompt:
+                last_result["video_prompt"] = _truncate_to_word_cap(video_prompt, WORD_CAP)
+                last_result["validator_errors"] = []
+                self.logger.info(
+                    "Visual prompt scene %d: truncated to cap on attempt %d (no retries wasted)",
+                    scene_index, attempt + 1,
+                )
+                return AgentResult(success=True, data=last_result)
             self.logger.warning(
                 "Visual prompt scene %d failed validation (attempt %d): %s",
                 scene_index, attempt + 1, "; ".join(validator_errors),

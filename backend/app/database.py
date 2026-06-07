@@ -21,6 +21,20 @@ from app.config import settings
 _engine: Optional[AsyncEngine] = None
 _session_factory: Optional[async_sessionmaker] = None
 
+# Postgres-side safety timeouts (applied to every connection). Without these a
+# kill -9'd worker leaves its transaction "idle in transaction" holding row
+# locks forever, blocking later DML and hanging the backend.
+# NOTE: stages currently hold a transaction open ACROSS the multi-minute LLM
+# call and the ~10-min GPU render (it sits "idle in transaction" the whole
+# time). So the idle timeout must exceed the longest such call, or it kills
+# live work. 30min self-heals a kill -9 while leaving legitimate long stages
+# alone. The real fix is to not hold a txn across external calls (shrink scope);
+# until then, keep this generous.
+_PG_TIMEOUTS = {
+    "idle_in_transaction_session_timeout": "1800000",  # 30min: self-heal stranded txns
+    "lock_timeout": "15000",                           # 15s: fail fast instead of hanging on a lock
+}
+
 
 def _get_engine() -> AsyncEngine:
     global _engine
@@ -31,6 +45,7 @@ def _get_engine() -> AsyncEngine:
             pool_size=10,
             max_overflow=20,
             pool_pre_ping=True,
+            connect_args={"server_settings": _PG_TIMEOUTS},
         )
     return _engine
 
