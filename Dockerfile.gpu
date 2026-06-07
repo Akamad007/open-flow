@@ -1,0 +1,30 @@
+# GPU image for the backend API + Celery worker (real Wan2.2 / LTX / SD3.5 rendering).
+# Base ships CUDA 12.4 + a matching torch build so the engine subprocesses
+# (engines/*.py) run on the GPU. CPU/stub mode can use Dockerfile.backend instead.
+FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app/backend \
+    MODELS_ROOT=/app/models \
+    STORAGE_ROOT=/app/storage
+
+# ffmpeg = stitching/caption burn; postgresql-client = pg_isready/migrate waits.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg postgresql-client git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Deps first for layer caching. torch>=2.2 is already satisfied by the base
+# image's CUDA build, so pip keeps it (does not pull a CPU wheel).
+COPY backend/requirements.txt /app/backend/requirements.txt
+RUN pip install --no-cache-dir -r /app/backend/requirements.txt huggingface_hub
+
+# Repo-mirroring layout so app.config._REPO_ROOT (== parents[2] of config.py)
+# resolves to /app and the engines/*.py subprocess paths are found.
+COPY backend /app/backend
+COPY engines /app/engines
+
+WORKDIR /app/backend
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -63,6 +63,8 @@ run_queue_*.py
 
 # Secrets
 .env
+# Docker env (user-specific, may hold keys); created from .env.docker.example
+.env.docker
 
 # Temporary compat symlinks → engines/ (keep the live render's in-memory path
 # valid; remove these once the running render finishes). Real files live in engines/.

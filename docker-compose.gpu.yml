@@ -1,0 +1,134 @@
+# Full GPU stack — one command brings up Postgres + Redis, downloads the Wan2.2
+# weights, runs migrations, and starts the API + GPU worker + UI:
+#
+#     docker compose -f docker-compose.gpu.yml up
+#
+# Requires an NVIDIA GPU + driver + nvidia-container-toolkit on the host.
+# First run downloads the Wan2.2 TI2V-5B weights (large) into the `models`
+# volume and builds a CUDA image — expect a long first start. See docs/DOCKER.md.
+#
+# Knobs (put in .env next to this file; see .env.docker.example):
+#   LLM_PROVIDER=openai + LLM_API_KEY=sk-...   → real story analysis (else stub)
+#   IMAGE_PROVIDER=sd35 + HF_TOKEN=hf_...      → real character stills (SD3.5 is gated)
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql+asyncpg://storyvideouser:storyvideopass@db:5432/storyvideo
+  DATABASE_URL_SYNC: postgresql://storyvideouser:storyvideopass@db:5432/storyvideo
+  REDIS_URL: redis://redis:6379/0
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/1
+  STORAGE_ROOT: /app/storage
+  MODELS_ROOT: /app/models
+  # Real video rendering by default; LLM/image/audio stay stub unless you add keys.
+  VIDEO_PROVIDER: ${VIDEO_PROVIDER:-wan22}
+  AUDIO_PROVIDER: ${AUDIO_PROVIDER:-stub}
+  IMAGE_PROVIDER: ${IMAGE_PROVIDER:-stub}
+  LLM_PROVIDER: ${LLM_PROVIDER:-stub}
+  LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+  LLM_API_KEY: ${LLM_API_KEY:-}
+  HF_TOKEN: ${HF_TOKEN:-}
+  API_KEY: ${API_KEY:-}
+  SECRETS_MANAGER_URL: ${SECRETS_MANAGER_URL:-}
+  SECRETS_MANAGER_TOKEN: ${SECRETS_MANAGER_TOKEN:-}
+  CHATTERBOX_REFERENCE_AUDIO: /app/storage/audio/narrator_reference.wav
+  # Identity (InstantID) needs an external repo not bundled here — keep off.
+  IDENTITY_PROVIDER_ENABLED: "false"
+  INSTANTID_DAEMON_ENABLED: "false"
+  # Single GPU in-container → index 0; route everything to its queue.
+  WAN22_GPU_INDEX: "0"
+  CUDA_DEVICE_ORDER: PCI_BUS_ID
+  GPU_PYTHON_PATH: python
+  CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000"]'
+
+x-gpu-reservation: &gpu-reservation
+  resources:
+    reservations:
+      devices:
+        - driver: nvidia
+          count: all
+          capabilities: [gpu]
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: storyvideouser
+      POSTGRES_PASSWORD: storyvideopass
+      POSTGRES_DB: storyvideo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U storyvideouser -d storyvideo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # One-shot: download the Wan2.2 weights into the shared `models` volume.
+  model-init:
+    build: { context: ., dockerfile: Dockerfile.gpu }
+    command: python scripts/download_models.py --wan22
+    environment: *app-env
+    volumes:
+      - models:/app/models
+    restart: "no"
+
+  # One-shot: create/upgrade the schema before anything reads it.
+  migrate:
+    build: { context: ., dockerfile: Dockerfile.gpu }
+    command: alembic upgrade head
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build: { context: ., dockerfile: Dockerfile.gpu }
+    ports:
+      - "8000:8000"
+    environment: *app-env
+    volumes:
+      - storage:/app/storage
+      - models:/app/models
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
+  worker:
+    build: { context: ., dockerfile: Dockerfile.gpu }
+    # CPU/LLM pipeline stages route to `cpu`; GPU rendering to `gpu0`. One worker
+    # consumes both so the whole pipeline runs end-to-end on a single GPU.
+    command: celery -A app.orchestration.tasks:celery_app worker -Q cpu,gpu0 --concurrency=1 --loglevel=info
+    environment: *app-env
+    volumes:
+      - storage:/app/storage
+      - models:/app/models
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+      model-init: { condition: service_completed_successfully }
+    deploy: *gpu-reservation
+
+  frontend:
+    build: { context: ., dockerfile: Dockerfile.frontend }
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_PROXY: http://backend:8000
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  models:
+  storage:
