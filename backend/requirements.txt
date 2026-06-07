@@ -24,6 +24,7 @@ google-auth-httplib2==0.4.0
 
 # ── Media ──
 # ffmpeg-python==0.2.0  # We use subprocess directly
+opencv-python-headless>=4.8.0   # cv2 — frame analysis in video_evaluator (headless: no GUI deps)
 
 # ── Utilities ──
 python-multipart==0.0.9

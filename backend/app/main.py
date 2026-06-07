@@ -97,7 +97,9 @@ app.include_router(celery_log_router, prefix="/api")
 app.include_router(uploads_router, prefix="/api")
 app.include_router(youtube_uploads_router, prefix="/api")
 
-# Serve generated assets
+# Serve generated assets. Ensure the dir exists first — StaticFiles validates it
+# at mount time (import), before the lifespan hook runs (e.g. fresh container/volume).
+settings.storage_root.mkdir(parents=True, exist_ok=True)
 app.mount("/storage", StaticFiles(directory=str(settings.storage_root)), name="storage")
 
 
