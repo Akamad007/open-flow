@@ -1,45 +1,45 @@
 # ── Core ──
-fastapi==0.115.0
-uvicorn[standard]==0.31.0
-pydantic==2.9.0
-pydantic-settings==2.5.0
+fastapi==0.137.0
+uvicorn[standard]==0.49.0
+pydantic==2.13.4
+pydantic-settings==2.14.1
 
 # ── Database ──
-sqlalchemy[asyncio]==2.0.35
-asyncpg==0.29.0
-psycopg2-binary==2.9.9
-alembic==1.13.0
+sqlalchemy[asyncio]==2.0.50
+asyncpg==0.31.0
+psycopg2-binary==2.9.12
+alembic==1.18.4
 
 # ── Task Queue ──
-celery[redis]==5.4.0
-redis==5.1.0
+celery[redis]==5.6.3
+redis==8.0.0
 
 # ── HTTP Client ──
-httpx==0.27.0
+httpx==0.28.1
 
 # ── YouTube upload ──
-google-api-python-client==2.196.0
+google-api-python-client==2.197.0
 google-auth-oauthlib==1.4.0
 google-auth-httplib2==0.4.0
 
 # ── Media ──
 # ffmpeg-python==0.2.0  # We use subprocess directly
-opencv-python-headless>=4.8.0   # cv2 — frame analysis in video_evaluator (headless: no GUI deps)
+opencv-python-headless>=4.13.0.92   # cv2 — frame analysis in video_evaluator (headless: no GUI deps)
 
 # ── Utilities ──
-python-multipart==0.0.9
-python-dotenv==1.0.1
-PyYAML>=6.0          # LoRA catalog / config parsing
-yt-dlp>=2024.0       # source-clip download helper
+python-multipart==0.0.32
+python-dotenv==1.2.2
+PyYAML>=6.0.3          # LoRA catalog / config parsing
+yt-dlp>=2026.6.9       # source-clip download helper
 
 # ── AI / ML (image & video generation) ──
 # GPU users: install a CUDA build of torch from the official index, e.g.
 #   pip install torch --index-url https://download.pytorch.org/whl/cu128
 # A plain `pip install` here yields a CPU build (fine for stub mode).
-diffusers>=0.30.0
-transformers>=4.40.0
-accelerate>=0.30.0
-safetensors>=0.4.0
-torch>=2.2.0
-Pillow>=10.0.0
-rembg>=2.0.50
+diffusers>=0.38.0
+transformers>=5.12.0
+accelerate>=1.14.0
+safetensors>=0.8.0
+torch>=2.12.0
+Pillow>=12.2.0
+rembg>=2.0.76
